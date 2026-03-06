@@ -24,8 +24,6 @@ export class ChromePromptProvider implements ILLMProvider {
     }
 
     destroy(): void {
-        if (typeof this.session.destroy === 'function') {
-            this.session.destroy();
-        }
+        this.session.destroy?.();
     }
 }

@@ -173,18 +173,18 @@ export class InPageAgent {
                 action = JSON.parse(cleanJson);
             } catch {
                 this.log(`Failed to parse LLM output as JSON: ${responseText}`, "error");
-                if (typeof tempSession.destroy === 'function') tempSession.destroy();
+                tempSession.destroy?.();
                 return false;
             }
 
             if (!action.tool || !action.arguments) {
                 this.log("LLM returned invalid action format.", "error");
-                if (typeof tempSession.destroy === 'function') tempSession.destroy();
+                tempSession.destroy?.();
                 return false;
             }
 
             // Commit the session state if we accepted the action
-            if (typeof this.session.destroy === 'function') this.session.destroy();
+            this.session.destroy?.();
             this.session = tempSession;
 
             // Act

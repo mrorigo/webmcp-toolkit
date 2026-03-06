@@ -47,15 +47,15 @@ export class DeclarativePolyfill {
     }
 
     private needsPolyfill() {
-        const _window = typeof window !== 'undefined' ? window as any : null;
-        return typeof Object.getOwnPropertyDescriptor(Event.prototype, 'agentInvoked') === 'undefined' &&
-            (_window && _window.SubmitEvent && typeof Object.getOwnPropertyDescriptor(_window.SubmitEvent.prototype, 'agentInvoked') === 'undefined');
+        const _window = globalThis.window as any | undefined;
+        return !Object.getOwnPropertyDescriptor(Event.prototype, 'agentInvoked') &&
+            (!_window?.SubmitEvent || !Object.getOwnPropertyDescriptor(_window.SubmitEvent.prototype, 'agentInvoked'));
     }
 
     private polyfillSubmitEvent() {
         // We override the global window.SubmitEvent to add agentInvoked and respondWith
-        if (typeof window.SubmitEvent !== 'undefined') {
-            const originalSubmitEvent = window.SubmitEvent;
+        if (globalThis.window?.SubmitEvent) {
+            const originalSubmitEvent = globalThis.window.SubmitEvent as any;
 
             // Allow modifying the event objects
             Object.defineProperty(originalSubmitEvent.prototype, 'agentInvoked', {
@@ -134,8 +134,8 @@ export class DeclarativePolyfill {
             }
         });
 
-        if (typeof window.navigator !== "undefined" && (window.navigator as any).modelContext) {
-            (window.navigator as any).modelContext.registerTool({
+        if (globalThis.window?.navigator && (globalThis.window.navigator as any).modelContext) {
+            (globalThis.window.navigator as any).modelContext.registerTool({
                 name: toolName,
                 description: description,
                 inputSchema: inputSchema,

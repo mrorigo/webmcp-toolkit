@@ -67,7 +67,7 @@ export class WebMCPToolkit {
     }
 
     private async registerWithWebMCP(tool: ToolRegistration<z.ZodType>) {
-        if (typeof window !== "undefined" && window.navigator && (window.navigator as unknown as { modelContext?: any }).modelContext) {
+        if (globalThis.window?.navigator && (globalThis.window.navigator as unknown as { modelContext?: any }).modelContext) {
             // Lightweight Zod to JSON Schema bridge
             const jsonSchema = {
                 type: "object",
@@ -113,7 +113,7 @@ export class WebMCPToolkit {
      * @returns True if the user permitted the action.
      */
     async askUserToConfirm(client: WebMCPClient | null, message: string): Promise<boolean> {
-        if (!client || typeof client.requestUserInteraction !== 'function') {
+        if (!client?.requestUserInteraction) {
             this.log("No valid WebMCP client provided for UI interaction. Falling back to native confirm.", "warning");
             return window.confirm(message);
         }
