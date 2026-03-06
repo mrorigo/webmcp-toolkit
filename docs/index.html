@@ -1154,8 +1154,8 @@
                 <button class="copy-btn" id="copy-btn" onclick="copyInstall()">Copy</button>
                 <code>
         <span class="t-comment"># Clone and build</span><br>
-        <span class="t-punc"><span class="prompt">$ </span></span>git clone https://github.com/your-org/webmcp-polyfill-agent<br>
-        <span class="t-punc"><span class="prompt">$ </span></span>cd webmcp-polyfill-agent/packages/core<br>
+        <span class="t-punc"><span class="prompt">$ </span></span>git clone https://github.com/mrorigo/web-mcp-toolkit<br>
+        <span class="t-punc"><span class="prompt">$ </span></span>cd web-mcp-toolkit/packages/core<br>
         <span class="t-punc"><span class="prompt">$ </span></span>npm install && npm run build<br>
         <br>
         <span class="t-comment"># dist/browser.js (15 kb) and dist/declarative.js (7 kb) are ready</span>
@@ -1173,7 +1173,7 @@
 
     <!-- ─── FOOTER ─── -->
     <footer>
-        <p><strong>webmcp-polyfill-agent</strong> · Built with TypeScript · <a href="README.md">README</a> · <a
+        <p><strong>web-mcp-toolkit</strong> · Built with TypeScript · <a href="README.md">README</a> · <a
                 href="USER-GUIDE.md">User Guide</a> · <a href="AGENTS.md">AGENTS.md</a></p>
         <p style="margin-top: 0.5rem; color: #374151; font-size: 0.8rem;">MIT License · The WebMCP spec and browser APIs
             are subject to change.</p>
@@ -1195,7 +1195,7 @@
 
         // ─── COPY BUTTON ───
         function copyInstall() {
-            const text = `git clone https://github.com/your-org/webmcp-polyfill-agent\ncd webmcp-polyfill-agent/packages/core\nnpm install && npm run build`;
+            const text = `git clone https://github.com/mrorigo/web-mcp-toolkit\ncd web-mcp-toolkit/packages/core\nnpm install && npm run build`;
             navigator.clipboard.writeText(text).then(() => {
                 const btn = document.getElementById('copy-btn');
                 btn.textContent = 'Copied!';
