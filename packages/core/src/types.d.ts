@@ -39,9 +39,8 @@ declare global {
     }
 
     class SubmitEvent extends Event {
-        readonly submitter: HTMLElement | null;
+        readonly submitter: HTMLElement | null | undefined;
         agentInvoked?: boolean;
         respondWith?(response: Promise<any>): void;
     }
 }
-

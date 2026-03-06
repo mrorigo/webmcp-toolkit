@@ -1,4 +1,4 @@
-import { WebMCPToolkit } from "./WebMCPToolkit.js";
+import type { WebMCPToolkit } from "./web-mcp-toolkit.js";
 
 /**
  * A Polyfill enabling native, HTML-driven declarative WebMCP behavior today.
@@ -56,12 +56,12 @@ export class DeclarativePolyfill {
 
     private polyfillSubmitEvent() {
         // We override the global window.SubmitEvent to add agentInvoked and respondWith
-        if (globalThis.window?.SubmitEvent) {
-            const originalSubmitEvent = globalThis.window.SubmitEvent as any;
+        if (globalThis.SubmitEvent) {
+            const originalSubmitEvent = globalThis.SubmitEvent as any;
 
             // Allow modifying the event objects
             Object.defineProperty(originalSubmitEvent.prototype, 'agentInvoked', {
-                get() { return this._agentInvoked || false; },
+                get() { return this._agentInvoked ?? false; },
                 set(v) { this._agentInvoked = v; },
                 configurable: true
             });
@@ -83,7 +83,7 @@ export class DeclarativePolyfill {
         if (!toolName) return;
 
         this.knownForms.add(form);
-        const description = form.getAttribute('tooldescription') || `Submit the ${toolName} form`;
+        const description = form.getAttribute('tooldescription') ?? `Submit the ${toolName} form`;
 
         // Dynamically build JSON Schema based on HTML5 input properties
         // We bypass the typed Zod registry in the SDK and talk directly to the WebMCP layer for purely declarative forms.
@@ -98,7 +98,7 @@ export class DeclarativePolyfill {
             const name = el.getAttribute('name');
             if (!name) continue;
 
-            const desc = el.getAttribute('toolparamdescription') || '';
+            const desc = el.getAttribute('toolparamdescription') ?? '';
             const isRequired = el.hasAttribute('required');
 
             let propertyDef: any = { description: desc };
@@ -136,8 +136,8 @@ export class DeclarativePolyfill {
             }
         }
 
-        if (globalThis.window?.navigator && (globalThis.window.navigator as any).modelContext) {
-            (globalThis.window.navigator as any).modelContext.registerTool({
+        if (globalThis.window.navigator && (globalThis.window.navigator as unknown as { modelContext: any }).modelContext) {
+            (globalThis.window.navigator as unknown as { modelContext: any }).modelContext.registerTool({
                 name: toolName,
                 description: description,
                 inputSchema: inputSchema,
@@ -156,7 +156,7 @@ export class DeclarativePolyfill {
 
                     let submitEvent: Event;
                     try {
-                        submitEvent = new (window as any).SubmitEvent('submit', {
+                        submitEvent = new (globalThis.window as any).SubmitEvent('submit', {
                             bubbles: true,
                             cancelable: true,
                             submitter: form.querySelector('button[type="submit"], input[type="submit"]')

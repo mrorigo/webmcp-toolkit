@@ -4,17 +4,16 @@
  * and serializing the entire visual structure into a highly compressed semantic string format designed for Language Models.
  */
 export class SemanticIndexer {
-    nextAgentId: number = 1;
+    nextAgentId = 1;
     actionableElements: Map<string, HTMLElement> = new Map();
 
     isActionable(element: HTMLElement): boolean {
-        if (element.hasAttribute('toolname')) return true;
-        if (element.matches('input[type="hidden"]')) return false;
-        if (element.matches('input, button, select, textarea, a')) return true;
+        if (element.hasAttribute('toolname')) { return true; }
+        if (element.matches('input[type="hidden"]')) { return false; }
+        if (element.matches('input, button, select, textarea, a')) { return true; }
 
-        if (element.matches('[role="button"], [role="link"], [role="textbox"]')) return true;
-
-        if (element.matches('[tabindex]:not([tabindex="-1"])')) return true;
+        if (element.matches('[role="button"], [role="link"], [role="textbox"]')) { return true; }
+        if (element.matches('[tabindex]:not([tabindex="-1"])')) { return true; }
 
         return false;
     }
@@ -27,9 +26,8 @@ export class SemanticIndexer {
             root,
             NodeFilter.SHOW_ELEMENT,
             {
-                acceptNode: (node: Node) => {
-                    return this.isActionable(node as HTMLElement) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
-                }
+                acceptNode: (node: Node) =>
+                    this.isActionable(node as HTMLElement) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
             }
         );
 
@@ -46,12 +44,12 @@ export class SemanticIndexer {
     }
 
     getElementLabel(element: HTMLElement): string {
-        if (element.hasAttribute('aria-label')) return element.getAttribute('aria-label') || '';
-        if (element.hasAttribute('title')) return element.getAttribute('title') || '';
+        if (element.hasAttribute('aria-label')) { return element.getAttribute('aria-label') ?? ''; }
+        if (element.hasAttribute('title')) { return element.getAttribute('title') ?? ''; }
 
         if (element.id) {
-            const label = document.querySelector(`label[for="${element.id}"]`) as HTMLElement;
-            if (label) return label.innerText.trim();
+            const label = document.querySelector(`label[for="${element.id}"]`) as HTMLElement ?? undefined;
+            if (label) { return label.innerText.trim(); }
         }
 
         const tagName = element.tagName.toLowerCase();
@@ -59,34 +57,34 @@ export class SemanticIndexer {
             return element.innerText.trim();
         }
 
-        if (element.hasAttribute('placeholder')) return element.getAttribute('placeholder') || '';
-        if (element.hasAttribute('name')) return element.getAttribute('name') || '';
+        if (element.hasAttribute('placeholder')) { return element.getAttribute('placeholder') ?? ''; }
+        if (element.hasAttribute('name')) { return element.getAttribute('name') ?? ''; }
 
         return '';
     }
 
-    serializeActionableElement(element: HTMLElement, compressLevel: number = 0): string {
+    serializeActionableElement(element: HTMLElement, compressLevel = 0): string {
         const agentId = element.getAttribute('data-agent-id');
         const tagName = element.tagName.toLowerCase();
         let props: string[] = [];
 
         if (element.hasAttribute('toolname')) {
-            props.push(`form_tool="${element.getAttribute('toolname')}"`);
+            props.push(`form_tool="${element.getAttribute('toolname') ?? ''}"`);
             if (compressLevel < 1 && element.hasAttribute('tooldescription')) {
-                props.push(`desc="${element.getAttribute('tooldescription')}"`);
+                props.push(`desc="${element.getAttribute('tooldescription') ?? ''}"`);
             }
         } else {
             props.push(`tag="${tagName}"`);
         }
 
         const type = element.getAttribute('type');
-        if (type && !element.hasAttribute('toolname')) props.push(`type="${type}"`);
+        if (type && !element.hasAttribute('toolname')) { props.push(`type="${type}"`); }
 
         const label = this.getElementLabel(element);
-        if (label) props.push(`label="${label}"`);
+        if (label) { props.push(`label="${label}"`); }
 
         if (compressLevel < 1 && element.hasAttribute('toolparamdescription')) {
-            props.push(`param_desc="${element.getAttribute('toolparamdescription')}"`);
+            props.push(`param_desc="${element.getAttribute('toolparamdescription') ?? ''}"`);
         }
 
         if (compressLevel < 2 && element.hasAttribute('required')) {
@@ -102,7 +100,7 @@ export class SemanticIndexer {
             }
         }
 
-        return `[ID: ${agentId}] ${props.join(', ')}`;
+        return `[ID: ${agentId ?? '?'}] ${props.join(', ')}`;
     }
 
     /**
@@ -112,7 +110,7 @@ export class SemanticIndexer {
      * @param root The HTML element to start tracking from. Defaults to document.body.
      * @param compressLevel (0-2) Drives increasingly aggressive semantic pruning to conserve LLM context tokens.
      */
-    serializeDOM(root: HTMLElement = document.body, compressLevel: number = 0): string {
+    serializeDOM(root: HTMLElement = globalThis.document.body, compressLevel = 0): string {
         this.assignAgentIds(root);
 
         let lines: string[] = [];

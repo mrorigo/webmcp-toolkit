@@ -1,4 +1,4 @@
-import { ILLMProvider } from './ILLMProvider.js';
+import type { ILLMProvider } from "./illm-provider.js";
 
 export class ChromePromptProvider implements ILLMProvider {
     session: any;
@@ -11,7 +11,7 @@ export class ChromePromptProvider implements ILLMProvider {
         return await this.session.prompt(userPrompt, options);
     }
 
-    async countTokens(text: string): Promise<number> {
+    async countPromptTokens(text: string): Promise<number> {
         return await this.session.countPromptTokens(text);
     }
 

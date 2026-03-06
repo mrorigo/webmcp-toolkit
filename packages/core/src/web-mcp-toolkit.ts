@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { InPageAgent } from "./InPageAgent.js";
+import type { InPageAgent } from "./in-page-agent.js";
 
 /**
  * Defines a tool to be exposed to overarching WebMCP-compliant agents.
@@ -17,7 +17,7 @@ export interface ToolRegistration<T extends z.ZodType> {
     description: string;
     schema: T;
     readOnly?: boolean;
-    execute: (args: z.infer<T>, client: WebMCPClient | null) => Promise<unknown>;
+    execute: (args: z.infer<T>, client: WebMCPClient | undefined) => Promise<unknown>;
 }
 
 /**
@@ -62,7 +62,7 @@ export class WebMCPToolkit {
     /**
      * Emits internal logs to the configured logHandler.
      */
-    public log(msg: string, level: string = "info") {
+    public log(msg: string, level = "info") {
         this.logHandler(msg, level);
     }
 
@@ -85,7 +85,7 @@ export class WebMCPToolkit {
                 }
             }
 
-            (window.navigator as unknown as { modelContext: any }).modelContext.registerTool({
+            (globalThis.window.navigator as unknown as { modelContext: any }).modelContext.registerTool({
                 name: tool.name,
                 description: tool.description,
                 inputSchema: jsonSchema,
@@ -94,7 +94,7 @@ export class WebMCPToolkit {
                     this.log(`Invoking tool ${tool.name}`, "info");
                     // Validate
                     const parsedArgs = tool.schema.parse(args);
-                    return await tool.execute(parsedArgs, context?.client || null);
+                    return await tool.execute(parsedArgs, context?.client ?? undefined);
                 }
             });
             this.log(`Successfully registered tool ${tool.name} with modelContext`, "success");
@@ -111,10 +111,10 @@ export class WebMCPToolkit {
      * @param message Text to display to the user explaining the requested action.
      * @returns True if the user permitted the action.
      */
-    async askUserToConfirm(client: WebMCPClient | null, message: string): Promise<boolean> {
+    async askUserToConfirm(client: WebMCPClient | undefined, message: string): Promise<boolean> {
         if (!client?.requestUserInteraction) {
             this.log("No valid WebMCP client provided for UI interaction. Falling back to native confirm.", "warning");
-            return window.confirm(message);
+            return globalThis.window.confirm(message);
         }
 
         try {
@@ -157,8 +157,8 @@ export class WebMCPToolkit {
                 // We'll hardcode prompt confirmations for certain elements
 
                 config.agent.onAction = async (actionName: string, arg: Record<string, any>) => {
-                    const targetId = arg['agent_id'] || arg['id'] || arg['element_id'];
-                    if (!targetId) return;
+                    const targetId = arg['agent_id'] ?? arg['id'] ?? arg['element_id'];
+                    if (targetId === undefined) return;
                     const el = config.agent.indexer.actionableElements.get(String(targetId));
 
                     if (el && config.requireConfirmationFor) {
@@ -173,7 +173,7 @@ export class WebMCPToolkit {
                             }
                             // If the selector targets a form, we only want to confirm when the agent tries to submit the form
                             const closestForm = el.closest('form');
-                            if (closestForm && closestForm.matches(selector)) {
+                            if (closestForm?.matches(selector)) {
                                 if (actionName === "click" || actionName === "click_element") {
                                     if (el.tagName === 'BUTTON' || (el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'submit')) {
                                         requiresConfirm = true;
@@ -187,10 +187,10 @@ export class WebMCPToolkit {
                         if (requiresConfirm) {
                             this.log(`Agent action triggered Human-In-The-Loop hook for selector: ${matchedSelector}`, "action");
 
-                            const label = config.agent.indexer.getElementLabel(el) || el.getAttribute("name") || el.getAttribute("placeholder") || el.id || "Unnamed element";
-                            const actionDesc = actionName.includes("input") ? `type "${arg['text'] || arg['value']}" into` : `click on`;
+                            const label = config.agent.indexer.getElementLabel(el) ?? el.getAttribute("name") ?? el.getAttribute("placeholder") ?? el.id ?? "Unnamed element";
+                            const actionDesc = actionName.includes("input") ? `type "${arg['text'] ?? arg['value']}" into` : `click on`;
 
-                            const allowed = await this.askUserToConfirm(client, `The embedded agent wants to ${actionDesc} a critical element:\n<${el.tagName.toLowerCase()}> "${label}"\n\nAllow this action?`);
+                            const allowed = await this.askUserToConfirm(client ?? undefined, `The embedded agent wants to ${actionDesc} a critical element:\n<${el.tagName.toLowerCase()}> "${label}"\n\nAllow this action?`);
                             if (!allowed) {
                                 throw new Error("Action denied by user.");
                             }
@@ -198,10 +198,10 @@ export class WebMCPToolkit {
                     }
                 };
 
-                const res = await config.agent.run(args.task);
+                const result = await config.agent.run(args.task);
                 return {
-                    status: res.status,
-                    summary: res.summary
+                    status: result.status,
+                    summary: result.summary
                 };
             }
         });

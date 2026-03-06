@@ -1,5 +1,5 @@
-import { SemanticIndexer } from './SemanticIndexer.js';
-import { ILLMProvider } from './llm/ILLMProvider.js';
+import { SemanticIndexer } from './semantic-indexer.js';
+import type { ILLMProvider } from './llm/illm-provider.js';
 
 /**
  * Configuration options for the InPageAgent instance.
@@ -38,7 +38,7 @@ export class InPageAgent {
         this.actionHistory = [];
     }
 
-    log(msg: string, type: string = 'info') {
+    log(msg: string, type = 'info') {
         if (this.onLog) {
             this.onLog(msg, type);
         } else {
@@ -54,24 +54,24 @@ export class InPageAgent {
         }
 
         if (actionName === 'done') {
-            this.log(`Task finished: ${args['reason'] || args['message'] || ''}`, "success");
-            return false; // stop loop
+            this.log(`Task finished: ${args['reason'] ?? args['message'] ?? ''}`, "success");
+            return false; // Stop loop
         }
 
         this.hasTakenAction = true;
 
-        const agentId = args['agent_id'] || args['id'] || args['element_id'];
+        const agentId = args['agent_id'] ?? args['id'] ?? args['element_id'];
         const textToInput = args['text'] !== undefined ? args['text'] : args['value'];
 
         const el = this.indexer.actionableElements.get(agentId);
         if (!el) {
             this.log(`Error: Element with ID ${agentId} not found.`, "error");
-            return true; // continue
+            return true; // Continue
         }
 
         if (actionName === 'input_text' || actionName === 'input') {
             el.focus();
-            (el as HTMLInputElement).value = textToInput || '';
+            (el as HTMLInputElement).value = textToInput ?? '';
             el.dispatchEvent(new Event('input', { bubbles: true }));
             el.dispatchEvent(new Event('change', { bubbles: true }));
             this.log(`Typed text into [ID: ${agentId}]`, "success");
@@ -87,21 +87,21 @@ export class InPageAgent {
         }
 
         // Wait a bit after action to allow DOM updates
-        await new Promise(r => setTimeout(r, 800));
-        return true; // continue loop
+        await new Promise(resolve => setTimeout(resolve, 800));
+        return true; // Continue loop
     }
 
     private async countAndBuildPrompt(compressLevel: number, historyLimit: number): Promise<{ prompt: string; tokens: number }> {
-        const domState = this.indexer.serializeDOM(document.body, compressLevel);
+        const domState = this.indexer.serializeDOM(globalThis.document.body, compressLevel);
 
         let historyStr = "None";
         const trimmedHistory = this.actionHistory.slice(-historyLimit);
         if (trimmedHistory.length > 0) {
-            historyStr = trimmedHistory.map((a, i) => `${i + 1}. ${a}`).join('\n');
+            historyStr = trimmedHistory.map((action, index) => `${index + 1}. ${action}`).join('\n');
         }
 
         const prompt = `Current Goal: ${this.task}\n\nPast Actions Taken In Order:\n${historyStr}\n\n${domState}\n\nBased on your past actions and the current state, what is the exact next logical action? Output ONLY a JSON object with 'tool' and 'arguments' properties. No markdown formatting.`;
-        const tokens = await this.session.countTokens(prompt);
+        const tokens = await this.session.countPromptTokens(prompt);
         return { prompt, tokens };
     }
 
@@ -111,7 +111,7 @@ export class InPageAgent {
      */
     async step(): Promise<boolean> {
         let compressLevel = 0;
-        let historyLimit = this.actionHistory.length || 1; // if 0, we still want 1 for serialization logic
+        let historyLimit = this.actionHistory.length || 1; // If 0, we still want 1 for serialization logic (using || here because length 0 is falsy and we want 1)
         let { prompt, tokens } = await this.countAndBuildPrompt(compressLevel, historyLimit);
 
         // Utilize the provider's native contextWindow if available, reserving a 10% safety margin for the assistant response and internal system prompts.
@@ -131,7 +131,7 @@ export class InPageAgent {
 
         if (tokens > MAX_CONTEXT) {
             this.log(`Warning: DOM is incredibly large (${tokens} tokens). Forcibly truncating literal string.`, "warning");
-            prompt = prompt.slice(0, 15000); // hard slice string 
+            prompt = prompt.slice(0, 15000); // Hard slice string 
         }
 
         this.log(`Prompting LLM with current state (Tokens: ~${tokens}, Compress Level: ${compressLevel})...`, "info");
@@ -189,10 +189,12 @@ export class InPageAgent {
 
             // Act
             const shouldContinue = await this.executeAction(action.tool, action.arguments);
+            // this.currentSessionTokensConsumed += tokens; // This line was in the user's edit but `currentSessionTokensConsumed` is not defined. I will omit it to avoid introducing a new error.
             return shouldContinue;
 
-        } catch (e) {
-            this.log(`LLM Error: ${(e as Error).message || String(e)}`, "error");
+        } catch (error) {
+            this.log(`LLM Error: ${(error as Error).message || String(error)}`, "error");
+            this.actionHistory.push(`Error: ${(error as Error).message || String(error)}`);
             return false;
         }
     }
@@ -220,6 +222,7 @@ export class InPageAgent {
             steps++;
             this.log(`--- Step ${steps} ---`, "info");
 
+            // eslint-disable-next-line no-await-in-loop
             const shouldContinue = await this.step();
             if (!shouldContinue) {
                 break;
