@@ -126,6 +126,20 @@ For complex multi-step workflows, enable the **Universal Delegate**. This regist
 | `ChromePromptProvider` | Chrome with `globalThis.LanguageModel` available (local, zero-cost) |
 | `OpenAIProvider`       | Fallback via REST API with your own API key (BYOK)                  |
 
+> [!CAUTION]
+> **Security warning: your API key will be visible in the browser.**
+>
+> `OpenAIProvider` makes requests directly from the user's browser using the key you pass as `apiKey`. Because all frontend JavaScript is readable by anyone using the page, **this key is effectively public** to any user who opens DevTools.
+>
+> Implications:
+> - Any user can extract the key and use it to make arbitrary API calls at your expense.
+> - **Never use a production or billing-critical key here.**
+>
+> Safer alternatives:
+> - **Prefer `ChromePromptProvider`** — it uses the on-device model and requires no key at all.
+> - **Proxy via your own backend** — expose a `/api/llm` endpoint that holds the key server-side, and point the agent at that instead.
+> - **Use a restricted, rate-limited key** with a per-key spend cap set in your OpenAI dashboard, scoped only to the models you need.
+
 ### Usage
 
 ```typescript

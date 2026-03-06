@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>webmcp-polyfill-agent — AI-Native WebMCP SDK</title>
+    <meta name="description"
+        content="The definitive SDK for bridging traditional web applications into the era of AI Browser Agents. Zero dependencies. 15 kb." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #070912;
+            --bg2: #0c1020;
+            --surface: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
+            --bronze: #cd7f32;
+            --bronze-glow: rgba(205, 127, 50, 0.2);
+            --silver: #94a3b8;
+            --silver-glow: rgba(148, 163, 184, 0.15);
+            --gold: #f59e0b;
+            --gold-glow: rgba(245, 158, 11, 0.2);
+            --accent: #6366f1;
+            --accent2: #8b5cf6;
+            --text: #f1f5f9;
+            --muted: #64748b;
+            --code-bg: #0f1629;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ─── NOISE OVERLAY ─── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ─── NAVBAR ─── */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 2.5rem;
+            background: rgba(7, 9, 18, 0.7);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-logo .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.7);
+            }
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text);
+        }
+
+        .nav-cta {
+            padding: 0.5rem 1.25rem;
+            background: var(--accent);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .nav-cta:hover {
+            opacity: 0.85;
+            transform: translateY(-1px);
+        }
+
+        /* ─── HERO ─── */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 8rem 2rem 6rem;
+            overflow: hidden;
+        }
+
+        .hero-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+        }
+
+        .orb-1 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 70%);
+            top: -100px;
+            left: 50%;
+            transform: translateX(-60%);
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.2), transparent 70%);
+            bottom: 50px;
+            right: -100px;
+        }
+
+        .orb-3 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.12), transparent 70%);
+            bottom: 100px;
+            left: -50px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 1rem;
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 999px;
+            background: rgba(99, 102, 241, 0.1);
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #a5b4fc;
+            margin-bottom: 2rem;
+            animation: fade-up 0.6s ease both;
+        }
+
+        .hero-badge svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        h1 {
+            font-size: clamp(3rem, 7vw, 5.5rem);
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: -0.04em;
+            background: linear-gradient(135deg, #fff 30%, #a5b4fc 70%, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5rem;
+            animation: fade-up 0.6s 0.1s ease both;
+        }
+
+        .hero-sub {
+            max-width: 600px;
+            font-size: 1.2rem;
+            color: var(--muted);
+            font-weight: 400;
+            line-height: 1.7;
+            margin-bottom: 2.5rem;
+            animation: fade-up 0.6s 0.2s ease both;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 2.5rem;
+            justify-content: center;
+            margin-bottom: 3rem;
+            animation: fade-up 0.6s 0.3s ease both;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .stat-val {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fade-up 0.6s 0.4s ease both;
+        }
+
+        .btn-primary {
+            padding: 0.9rem 2rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #fff;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            box-shadow: 0 4px 30px rgba(99, 102, 241, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 40px rgba(99, 102, 241, 0.5);
+        }
+
+        .btn-secondary {
+            padding: 0.9rem 2rem;
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: background 0.2s, transform 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.07);
+            transform: translateY(-2px);
+        }
+
+        /* ─── CODE TERMINAL ─── */
+        .terminal-wrap {
+            max-width: 700px;
+            width: 100%;
+            margin: 4rem auto 0;
+            animation: fade-up 0.6s 0.5s ease both;
+        }
+
+        .terminal {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.9rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .t-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .t-dot:nth-child(1) {
+            background: #ff5f57;
+        }
+
+        .t-dot:nth-child(2) {
+            background: #febc2e;
+        }
+
+        .t-dot:nth-child(3) {
+            background: #28c840;
+        }
+
+        .t-filename {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .terminal-body {
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            line-height: 1.8;
+            text-align: left;
+            overflow-x: auto;
+        }
+
+        .t-comment {
+            color: #4a5568;
+        }
+
+        .t-keyword {
+            color: #c678dd;
+        }
+
+        .t-fn {
+            color: #61afef;
+        }
+
+        .t-str {
+            color: #98c379;
+        }
+
+        .t-var {
+            color: #e5c07b;
+        }
+
+        .t-punc {
+            color: #abb2bf;
+        }
+
+        .t-import {
+            color: #e06c75;
+        }
+
+        .t-type {
+            color: #56b6c2;
+        }
+
+        /* ─── SECTIONS ─── */
+        section {
+            padding: 6rem 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.15;
+            margin-bottom: 1.25rem;
+        }
+
+        .section-sub {
+            font-size: 1.1rem;
+            color: var(--muted);
+            max-width: 560px;
+            line-height: 1.8;
+        }
+
+        /* ─── TIERS ─── */
+        .tiers {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        .tier-card {
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2.5rem;
+            align-items: center;
+            overflow: hidden;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+
+        .tier-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .tier-card.bronze {
+            border-color: rgba(205, 127, 50, 0.3);
+        }
+
+        .tier-card.bronze:hover {
+            border-color: rgba(205, 127, 50, 0.6);
+            box-shadow: 0 20px 60px rgba(205, 127, 50, 0.1);
+        }
+
+        .tier-card.silver {
+            border-color: rgba(148, 163, 184, 0.2);
+        }
+
+        .tier-card.silver:hover {
+            border-color: rgba(148, 163, 184, 0.4);
+            box-shadow: 0 20px 60px rgba(148, 163, 184, 0.08);
+        }
+
+        .tier-card.gold {
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .tier-card.gold:hover {
+            border-color: rgba(245, 158, 11, 0.6);
+            box-shadow: 0 20px 60px rgba(245, 158, 11, 0.1);
+        }
+
+        .tier-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            opacity: 0.3;
+            top: -80px;
+            right: -80px;
+        }
+
+        .bronze .tier-glow {
+            background: var(--bronze);
+        }
+
+        .silver .tier-glow {
+            background: var(--silver);
+        }
+
+        .gold .tier-glow {
+            background: var(--gold);
+        }
+
+        .tier-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .bronze .tier-tag {
+            background: var(--bronze-glow);
+            color: var(--bronze);
+            border: 1px solid rgba(205, 127, 50, 0.3);
+        }
+
+        .silver .tier-tag {
+            background: var(--silver-glow);
+            color: var(--silver);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .gold .tier-tag {
+            background: var(--gold-glow);
+            color: var(--gold);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .tier-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .tier-desc {
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.75;
+        }
+
+        .tier-code {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+
+        .experimental-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.2rem 0.6rem;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--gold);
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        /* ─── FEATURES ─── */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 4rem;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: background 0.2s, border-color 0.2s, transform 0.2s;
+        }
+
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .feature-title {
+            font-size: 1.05rem;
+            font-weight: 650;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-desc {
+            font-size: 0.9rem;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        /* ─── BUNDLE COMPARISON ─── */
+        .bundle-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        .bundle-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: transform 0.2s;
+        }
+
+        .bundle-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .bundle-card.featured {
+            border-color: rgba(99, 102, 241, 0.4);
+            background: rgba(99, 102, 241, 0.06);
+        }
+
+        .bundle-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .bundle-size {
+            font-size: 3rem;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .bundle-card.featured .bundle-size {
+            background: linear-gradient(135deg, #fff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .bundle-unit {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 1.25rem;
+        }
+
+        .bundle-desc {
+            font-size: 0.875rem;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .bundle-includes {
+            list-style: none;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .bundle-includes li {
+            font-size: 0.825rem;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .bundle-includes li::before {
+            content: '✓';
+            color: #4ade80;
+            font-weight: 700;
+        }
+
+        /* ─── INSTALL ─── */
+        .install-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            position: relative;
+            margin-top: 3rem;
+        }
+
+        .install-block code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            display: block;
+            line-height: 2;
+        }
+
+        .install-block .prompt {
+            color: var(--accent);
+            user-select: none;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.4rem 0.9rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 0.75rem;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .copy-btn:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* ─── DIVIDER ─── */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 0 2rem;
+        }
+
+        /* ─── FOOTER ─── */
+        footer {
+            padding: 3rem 2rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.875rem;
+            border-top: 1px solid var(--border);
+            position: relative;
+            z-index: 1;
+        }
+
+        footer a {
+            color: var(--muted);
+            text-decoration: none;
+            border-bottom: 1px solid var(--border);
+            transition: color 0.2s;
+        }
+
+        footer a:hover {
+            color: var(--text);
+        }
+
+        /* ─── ANIMATIONS ─── */
+        @keyframes fade-up {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(32px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ─── SCROLLBAR ─── */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1e2a45;
+            border-radius: 999px;
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 768px) {
+            nav {
+                padding: 1rem 1.25rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .tier-card {
+                grid-template-columns: 1fr;
+            }
+
+            .bundle-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-stats {
+                gap: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ─── NAV ─── -->
+    <nav>
+        <a href="#" class="nav-logo">
+            <span class="dot"></span>
+            webmcp-polyfill-agent
+        </a>
+        <ul class="nav-links">
+            <li><a href="#how-it-works">How it works</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#bundles">Bundles</a></li>
+            <li><a href="#install">Install</a></li>
+        </ul>
+        <a href="https://github.com" class="nav-cta">GitHub →</a>
+    </nav>
+
+    <!-- ─── HERO ─── -->
+    <section class="hero">
+        <div class="hero-orb orb-1"></div>
+        <div class="hero-orb orb-2"></div>
+        <div class="hero-orb orb-3"></div>
+
+        <div class="hero-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Zero runtime dependencies · Fully typed TypeScript
+        </div>
+
+        <h1>Make your website<br>AI-Agent native.</h1>
+
+        <p class="hero-sub">
+            <strong>webmcp-polyfill-agent</strong> is the definitive SDK for bridging traditional web apps into the era
+            of AI Browser Agents — from simple tool registration all the way to a fully autonomous in-page sub-agent.
+        </p>
+
+        <div class="hero-stats">
+            <div class="stat"><span class="stat-val">15 kb</span><span class="stat-label">Full bundle</span></div>
+            <div class="stat"><span class="stat-val">7 kb</span><span class="stat-label">Declarative bundle</span></div>
+            <div class="stat"><span class="stat-val">0</span><span class="stat-label">Dependencies</span></div>
+            <div class="stat"><span class="stat-val">3</span><span class="stat-label">Integration tiers</span></div>
+        </div>
+
+        <div class="hero-buttons">
+            <a href="#install" class="btn-primary">Get started</a>
+            <a href="USER-GUIDE.md" class="btn-secondary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                </svg>
+                Read the docs
+            </a>
+        </div>
+
+        <div class="terminal-wrap">
+            <div class="terminal">
+                <div class="terminal-header">
+                    <span class="t-dot"></span><span class="t-dot"></span><span class="t-dot"></span>
+                    <span class="t-filename">your-page.ts</span>
+                </div>
+                <div class="terminal-body">
+                    <span class="t-keyword">const</span> <span class="t-var">mcp</span> <span class="t-punc">=
+                        new</span> <span class="t-fn">WebMCPToolkit</span><span class="t-punc">();</span><br>
+                    <br>
+                    <span class="t-comment">// Level 1 — Explicit tool (Bronze)</span><br>
+                    <span class="t-var">mcp</span><span class="t-punc">.</span><span class="t-var">tools</span><span
+                        class="t-punc">.</span><span class="t-fn">register</span><span class="t-punc">({</span><br>
+                    &nbsp;&nbsp;<span class="t-var">name</span><span class="t-punc">:</span> <span
+                        class="t-str">"search_catalog"</span><span class="t-punc">,</span><br>
+                    &nbsp;&nbsp;<span class="t-var">execute</span><span class="t-punc">: async ({ </span><span
+                        class="t-var">query</span> <span class="t-punc">}) =&gt;</span> <span
+                        class="t-fn">myApi</span><span class="t-punc">.</span><span class="t-fn">search</span><span
+                        class="t-punc">(</span><span class="t-var">query</span><span class="t-punc">)</span><br>
+                    <span class="t-punc">});</span><br>
+                    <br>
+                    <span class="t-comment">// Level 2 — Declarative polyfill (Silver)</span><br>
+                    <span class="t-keyword">new</span> <span class="t-fn">DeclarativePolyfill</span><span
+                        class="t-punc">(</span><span class="t-var">mcp</span><span class="t-punc">).</span><span
+                        class="t-fn">start</span><span class="t-punc">();</span><br>
+                    <br>
+                    <span class="t-comment">// Level 3 — Full in-page ReAct agent (Gold)</span><br>
+                    <span class="t-var">mcp</span><span class="t-punc">.</span><span
+                        class="t-fn">enableUniversalDelegate</span><span class="t-punc">({</span><br>
+                    &nbsp;&nbsp;<span class="t-var">agent</span><span class="t-punc">: new</span> <span
+                        class="t-fn">InPageAgent</span><span class="t-punc">({</span> <span
+                        class="t-var">llmProvider</span><span class="t-punc">:</span> <span
+                        class="t-var">provider</span> <span class="t-punc">})</span><br>
+                    <span class="t-punc">});</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ─── TIERS ─── -->
+    <section id="how-it-works">
+        <div class="container">
+            <p class="section-label reveal">Progressive Integration</p>
+            <h2 class="section-title reveal">Three tiers. One SDK.</h2>
+            <p class="section-sub reveal">Start simple, scale to full autonomy. Each level builds on the last, so you
+                adopt exactly as much as your application needs.</p>
+
+            <div class="tiers">
+
+                <!-- BRONZE -->
+                <div class="tier-card bronze reveal">
+                    <div class="tier-glow"></div>
+                    <div>
+                        <div class="tier-tag">🥉 Bronze — Explicit Tools</div>
+                        <h3 class="tier-title">Register any function as a WebMCP tool</h3>
+                        <p class="tier-desc">Wrap an existing API call or function. The SDK handles the boilerplate:
+                            JSON Schema conversion, argument validation, and clean error boundaries. Any object with a
+                            <code>parse(data)</code> method — including Zod schemas — works as the schema.
+                        </p>
+                    </div>
+                    <div class="tier-code">
+                        <span class="t-var">mcp</span><span class="t-punc">.</span><span class="t-var">tools</span><span
+                            class="t-punc">.</span><span class="t-fn">register</span><span class="t-punc">({</span><br>
+                        &nbsp;&nbsp;<span class="t-var">name</span><span class="t-punc">:</span> <span
+                            class="t-str">"add_to_cart"</span><span class="t-punc">,</span><br>
+                        &nbsp;&nbsp;<span class="t-var">description</span><span class="t-punc">:</span> <span
+                            class="t-str">"Adds a product"</span><span class="t-punc">,</span><br>
+                        &nbsp;&nbsp;<span class="t-var">schema</span><span class="t-punc">: { parse: (</span><span
+                            class="t-var">d</span><span class="t-punc">) =&gt; </span><span class="t-var">d</span><span
+                            class="t-punc">, _shape: {...} },</span><br>
+                        &nbsp;&nbsp;<span class="t-var">execute</span><span class="t-punc">: async ({ </span><span
+                            class="t-var">productId</span> <span class="t-punc">}) =&gt; {</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-keyword">return</span> <span
+                            class="t-var">cart</span><span class="t-punc">.</span><span class="t-fn">add</span><span
+                            class="t-punc">(</span><span class="t-var">productId</span><span
+                            class="t-punc">);</span><br>
+                        &nbsp;&nbsp;<span class="t-punc">}</span><br>
+                        <span class="t-punc">});</span>
+                    </div>
+                </div>
+
+                <!-- SILVER -->
+                <div class="tier-card silver reveal">
+                    <div class="tier-glow"></div>
+                    <div>
+                        <div class="tier-tag">🥈 Silver — Declarative Polyfill</div>
+                        <h3 class="tier-title">Semantic HTML → AI tool. Zero JavaScript.</h3>
+                        <p class="tier-desc">Annotate your existing <code>&lt;form&gt;</code> elements with
+                            <code>toolname</code> and <code>tooldescription</code> attributes. The
+                            MutationObserver-powered polyfill auto-registers them with the browser's modelContext, live
+                            — even for dynamically-rendered SPA forms.
+                        </p>
+                    </div>
+                    <div class="tier-code">
+                        <span class="t-comment">&lt;!-- Pure HTML. No JS needed. --&gt;</span><br>
+                        <span class="t-import">&lt;form</span><br>
+                        &nbsp;&nbsp;<span class="t-var">toolname</span><span class="t-punc">=</span><span
+                            class="t-str">"book_flight"</span><br>
+                        &nbsp;&nbsp;<span class="t-var">tooldescription</span><span class="t-punc">=</span><span
+                            class="t-str">"Books a seat"</span><span class="t-import">&gt;</span><br>
+                        &nbsp;&nbsp;<span class="t-import">&lt;input</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-var">name</span><span class="t-punc">=</span><span
+                            class="t-str">"destination"</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-var">toolparamdescription</span><span
+                            class="t-punc">=</span><span class="t-str">"City"</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-type">required</span> <span
+                            class="t-import">/&gt;</span><br>
+                        <span class="t-import">&lt;/form&gt;</span>
+                    </div>
+                </div>
+
+                <!-- GOLD -->
+                <div class="tier-card gold reveal">
+                    <div class="tier-glow"></div>
+                    <div>
+                        <div class="tier-tag">🥇 Gold — Universal Delegate</div>
+                        <h3 class="tier-title">
+                            Full autonomous in-page sub-agent
+                            <span class="experimental-tag">⚠ Experimental</span>
+                        </h3>
+                        <p class="tier-desc">Register the <code>delegate_page_task</code> macro-tool. An external agent
+                            sends a plain-text goal; your embedded In-Page Agent runs a full <strong>Observe → Think →
+                                Act</strong> ReAct loop over your live DOM — with Human-In-The-Loop authorization before
+                            critical actions.</p>
+                    </div>
+                    <div class="tier-code">
+                        <span class="t-var">mcp</span><span class="t-punc">.</span><span
+                            class="t-fn">enableUniversalDelegate</span><span class="t-punc">({</span><br>
+                        &nbsp;&nbsp;<span class="t-var">agent</span><span class="t-punc">: new</span> <span
+                            class="t-fn">InPageAgent</span><span class="t-punc">({</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-var">llmProvider</span><span class="t-punc">:</span>
+                        <span class="t-var">provider</span><span class="t-punc">,</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-var">maxSteps</span><span class="t-punc">:</span> <span
+                            class="t-str">15</span><br>
+                        &nbsp;&nbsp;<span class="t-punc">}),</span><br>
+                        &nbsp;&nbsp;<span class="t-var">requireConfirmationFor</span><span class="t-punc">: [</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"form[toolname='checkout']"</span><br>
+                        &nbsp;&nbsp;<span class="t-punc">]</span><br>
+                        <span class="t-punc">});</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ─── FEATURES ─── -->
+    <section id="features">
+        <div class="container">
+            <p class="section-label reveal">Built for the modern web</p>
+            <h2 class="section-title reveal">Everything you need.<br>Nothing you don't.</h2>
+
+            <div class="features-grid">
+                <div class="feature-card reveal">
+                    <div class="feature-icon" style="background:rgba(99,102,241,0.15)">📦</div>
+                    <h3 class="feature-title">Zero dependencies</h3>
+                    <p class="feature-desc">The entire SDK ships with no runtime dependencies. No Zod, no node
+                        polyfills, no bloat. Just clean TypeScript compiled to a self-contained IIFE.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon" style="background:rgba(245,158,11,0.12)">⚡</div>
+                    <h3 class="feature-title">15 kb minified</h3>
+                    <p class="feature-desc">The full bundle — ReAct agent, LLM providers, and declarative polyfill —
+                        weighs 15 kb. Compress with Brotli and you're under 5 kb over the wire.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon" style="background:rgba(74,222,128,0.1)">🔒</div>
+                    <h3 class="feature-title">Human-In-The-Loop</h3>
+                    <p class="feature-desc">Define CSS selectors for elements that require user confirmation. The agent
+                        loop pauses and calls <code>client.requestUserInteraction()</code> before proceeding.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon" style="background:rgba(139,92,246,0.15)">🧠</div>
+                    <h3 class="feature-title">Two LLM providers</h3>
+                    <p class="feature-desc"><code>ChromePromptProvider</code> for zero-cost on-device inference via
+                        <code>globalThis.LanguageModel</code>. <code>OpenAIProvider</code> for BYOK cloud fallback —
+                        but note: <strong style="color:#fbbf24">API keys passed to OpenAIProvider are visible in
+                            frontend JS</strong>.
+                        Prefer the local provider or proxy via a backend endpoint in production.
+                    </p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon" style="background:rgba(248,113,113,0.1)">🔄</div>
+                    <h3 class="feature-title">Live DOM observation</h3>
+                    <p class="feature-desc">MutationObserver tracks newly-rendered forms and elements in real time, so
+                        tools register automatically in SPAs — no page refresh required.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon" style="background:rgba(56,189,248,0.1)">📐</div>
+                    <h3 class="feature-title">Future-proof standard</h3>
+                    <p class="feature-desc">Built on the emerging <a href="https://webmcp.link" style="color:#7dd3fc"
+                            target="_blank">WebMCP spec</a>. The declarative HTML attributes are polyfilled today; when
+                        browsers adopt them natively, the library steps aside automatically.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ─── BUNDLES ─── -->
+    <section id="bundles">
+        <div class="container">
+            <p class="section-label reveal">Choose your weight class</p>
+            <h2 class="section-title reveal">Two bundles, one codebase.</h2>
+            <p class="section-sub reveal">Load only what you need. Pages using only Declarative Polyfill pay half the
+                cost.</p>
+
+            <div class="bundle-grid">
+                <div class="bundle-card reveal">
+                    <p class="bundle-name">dist/declarative.js</p>
+                    <p class="bundle-size">7</p>
+                    <p class="bundle-unit">kb minified · ~3 kb Brotli</p>
+                    <p class="bundle-desc">Declarative Polyfill + WebMCPToolkit. No LLM, no agent loop, no inference
+                        code.</p>
+                    <ul class="bundle-includes">
+                        <li>WebMCPToolkit</li>
+                        <li>DeclarativePolyfill</li>
+                        <li>MutationObserver live-binding</li>
+                        <li>SubmitEvent polyfill</li>
+                    </ul>
+                </div>
+                <div class="bundle-card featured reveal">
+                    <p class="bundle-name">dist/browser.js</p>
+                    <p class="bundle-size">15</p>
+                    <p class="bundle-unit">kb minified · ~5 kb Brotli</p>
+                    <p class="bundle-desc">Full SDK. Everything in the slim bundle, plus the ReAct agent and both LLM
+                        providers.</p>
+                    <ul class="bundle-includes">
+                        <li>Everything in declarative.js</li>
+                        <li>InPageAgent (ReAct loop)</li>
+                        <li>ChromePromptProvider</li>
+                        <li>OpenAIProvider (BYOK)</li>
+                        <li>Semantic DOM indexer</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ─── INSTALL ─── -->
+    <section id="install">
+        <div class="container">
+            <p class="section-label reveal">Get started</p>
+            <h2 class="section-title reveal">Up in 60 seconds.</h2>
+
+            <div class="install-block reveal">
+                <button class="copy-btn" id="copy-btn" onclick="copyInstall()">Copy</button>
+                <code>
+        <span class="t-comment"># Clone and build</span><br>
+        <span class="t-punc"><span class="prompt">$ </span></span>git clone https://github.com/your-org/webmcp-polyfill-agent<br>
+        <span class="t-punc"><span class="prompt">$ </span></span>cd webmcp-polyfill-agent/packages/core<br>
+        <span class="t-punc"><span class="prompt">$ </span></span>npm install && npm run build<br>
+        <br>
+        <span class="t-comment"># dist/browser.js (15 kb) and dist/declarative.js (7 kb) are ready</span>
+      </code>
+            </div>
+
+            <div style="margin-top: 2rem; text-align: center;">
+                <a href="USER-GUIDE.md" class="btn-primary"
+                    style="display:inline-block; text-decoration:none; font-size:0.95rem; padding: 0.8rem 2rem;">
+                    Read the full User Guide →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── FOOTER ─── -->
+    <footer>
+        <p><strong>webmcp-polyfill-agent</strong> · Built with TypeScript · <a href="README.md">README</a> · <a
+                href="USER-GUIDE.md">User Guide</a> · <a href="AGENTS.md">AGENTS.md</a></p>
+        <p style="margin-top: 0.5rem; color: #374151; font-size: 0.8rem;">MIT License · The WebMCP spec and browser APIs
+            are subject to change.</p>
+    </footer>
+
+    <script>
+        // ─── SCROLL REVEAL ───
+        const revealEls = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, i) => {
+                if (entry.isIntersecting) {
+                    entry.target.style.transitionDelay = `${i * 0.05}s`;
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+        revealEls.forEach(el => observer.observe(el));
+
+        // ─── COPY BUTTON ───
+        function copyInstall() {
+            const text = `git clone https://github.com/your-org/webmcp-polyfill-agent\ncd webmcp-polyfill-agent/packages/core\nnpm install && npm run build`;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copy-btn');
+                btn.textContent = 'Copied!';
+                btn.style.color = '#4ade80';
+                setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+            });
+        }
+
+        // ─── PARALLAX ORBS ───
+        document.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth - 0.5) * 40;
+            const y = (e.clientY / window.innerHeight - 0.5) * 40;
+            document.querySelectorAll('.hero-orb').forEach((orb, i) => {
+                const factor = (i + 1) * 0.4;
+                orb.style.transform = `translate(${x * factor}px, ${y * factor}px)`;
+            });
+        });
+    </script>
+</body>
+
+</html>

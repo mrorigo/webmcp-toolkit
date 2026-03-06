@@ -23,6 +23,7 @@ export class InPageAgent {
     maxSteps: number;
     hasTakenAction: boolean;
     actionHistory: string[];
+    currentSessionTokensConsumed: number;
 
     // For hitl/UI events
     onAction?: (actionName: string, args: Record<string, any>) => Promise<void> | void;
@@ -36,6 +37,7 @@ export class InPageAgent {
         this.task = "";
         this.hasTakenAction = false;
         this.actionHistory = [];
+        this.currentSessionTokensConsumed = 0;
     }
 
     log(msg: string, type = 'info') {
@@ -189,7 +191,7 @@ export class InPageAgent {
 
             // Act
             const shouldContinue = await this.executeAction(action.tool, action.arguments);
-            // this.currentSessionTokensConsumed += tokens; // This line was in the user's edit but `currentSessionTokensConsumed` is not defined. I will omit it to avoid introducing a new error.
+            this.currentSessionTokensConsumed += tokens;
             return shouldContinue;
 
         } catch (error) {
@@ -204,16 +206,17 @@ export class InPageAgent {
      * 
      * @param task Natural language instruction for the embedded agent to attempt to achieve.
      */
-    async run(task: string): Promise<{ status: string, summary?: string }> {
+    async run(task: string): Promise<{ status: string, summary?: string, tokensConsumed: number }> {
         this.task = task;
         if (!this.session) {
             this.log("No valid session or provider given.", "error");
-            return { status: "error", summary: "No LLM session" };
+            return { status: "error", summary: "No LLM session", tokensConsumed: 0 };
         }
 
         this.isRunning = true;
         this.hasTakenAction = false;
         this.actionHistory = [];
+        this.currentSessionTokensConsumed = 0;
         this.log(`Starting task: "${task}"`, "success");
 
         let steps = 0;
@@ -238,7 +241,8 @@ export class InPageAgent {
 
         return {
             status: steps >= this.maxSteps ? "timeout" : "success",
-            summary: `Automated UI completed in ${steps} steps.`
+            summary: `Automated UI completed in ${steps} steps.`,
+            tokensConsumed: this.currentSessionTokensConsumed
         };
     }
 }
