@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npx esbuild src/index.ts --bundle --outfile=dist/browser.js --format=iife --global-name=UniversalWebMCPAgent",
+    "build": "npm run build:full && npm run build:declarative",
+    "build:full": "npx esbuild src/index.ts --bundle --minify --outfile=dist/browser.js --format=iife --global-name=UniversalWebMCPAgent",
+    "build:declarative": "npx esbuild src/index.declarative.ts --bundle --minify --outfile=dist/declarative.js --format=iife --global-name=DeclarativeWebMCP",
     "lint": "npx -y oxlint -D perf && npx eslint src/**/*.ts"
   },
   "keywords": [],

@@ -1,27 +1,30 @@
 # Universal WebMCP Agent Toolkit 🌐🤖
 
-The **Universal WebMCP Agent Toolkit** is the definitive SDK for bridging traditional web applications into the era of AI Browser Agents. By integrating this toolkit, site owners can instantly upgrade their web applications to be first-class [WebMCP (Web Model Context Protocol)](https://webmcp.link/) environments.
+The **Universal WebMCP Agent Toolkit** is an SDK for bridging traditional web applications into the era of AI Browser Agents. By integrating this toolkit, site owners can instantly make their web applications first-class [WebMCP (Web Model Context Protocol)](https://webmcp.link/) environments.
 
-Instead of waiting for brittle external AI agents to awkwardly screen-scrape your DOM, developers can use a unified, standards-compliant API to expose semantic intent natively. This toolkit scales gracefully from simple **Explicit Tool bridging**, to **Declarative DOM polyfills** (based on the [WebMCP declarative API draft](https://github.com/webmachinelearning/webmcp/blob/53388c87ba372de6be84d5eb30a436c07d41944b/declarative-api-explainer.md)), all the way up to a fully autonomous, embedded **In-Page Sub-Agent**.
+Instead of waiting for brittle external AI agents to scrape your DOM, you can expose semantic intent natively using a standards-compliant API. The toolkit scales from simple **Explicit Tool bridging**, to **Declarative DOM polyfills** (based on the [WebMCP declarative API draft](https://github.com/webmachinelearning/webmcp/blob/53388c87ba372de6be84d5eb30a436c07d41944b/declarative-api-explainer.md)), all the way up to a fully autonomous, embedded **In-Page Sub-Agent**.
 
 ---
 
 ## The Three Pillars of Universal WebMCP
 
 ### 1. The Explicit Tool Bridge (Bronze Level)
-For developers who want tight control over exactly what an external agent can do, the Toolkit provides an elegant wrapper over the emerging `navigator.modelContext.registerTool()` API. It removes the boilerplate of handling JSON Schema stringification, standardizes error boundaries, and makes registering a WebMCP tool feel like defining a modern API route.
+For developers who want tight control over what an external agent can do, the Toolkit wraps the emerging `navigator.modelContext.registerTool()` API. Drop in any object with a `parse` method as the schema — including any Zod schema, since they naturally satisfy the interface.
 
 ```typescript
-import { WebMCPToolkit } from "universal-webmcp-agent";
-import { z } from "zod";
+import { WebMCPToolkit } from "./dist/browser.js";
 
-const mcp = new WebMCPToolkit();
+const mcp = new UniversalWebMCPAgent.WebMCPToolkit();
 
 mcp.tools.register({
   name: "search_products",
   description: "Search the catalog for products.",
-  // Automatically transpiled to JSON Schema for the overarching WebMCP client
-  schema: z.object({ query: z.string() }), 
+  // Any object with a parse(data) method works as the schema.
+  // You can use your own Zod schema here too.
+  schema: {
+    parse: (data) => ({ query: String(data.query) }),
+    _shape: { query: { isOptional: () => false } }
+  },
   execute: async ({ query }, client) => {
     return await myInternalApi.search(query);
   }
@@ -29,9 +32,7 @@ mcp.tools.register({
 ```
 
 ### 2. Declarative WebMCP Polyfill (Silver Level)
-The standard WebMCP specification introduces a **Declarative API** extending standard HTML `<form>` elements with properties like `toolname` and `tooldescription`. 
-
-Since browsers will take years to fully adopt this natively, the Toolkit includes a **MutationObserver-powered Polyfill**. Just write semantic HTML today, and the Toolkit seamlessly ensures declarative WebMCP forms work perfectly—automatically translating your `<input>` fields into JSON Schemas, bridging WebMCP `SubmitEvents` (`e.agentInvoked`, `e.respondWith()`), and preventing unwanted page reloads when an agent interacts.
+The WebMCP specification lets standard HTML `<form>` elements be exposed as AI tools if they carry `toolname` and `tooldescription` attributes. Since native browser support will take years, the Toolkit ships a **MutationObserver-powered Polyfill** that works today.
 
 ```html
 <!-- Expose the checkout form directly to WebMCP -->
@@ -41,33 +42,28 @@ Since browsers will take years to fully adopt this natively, the Toolkit include
 </form>
 ```
 
+> Load `dist/declarative.js` (7 kb) instead of the full `dist/browser.js` (15 kb) for pages that only use the Declarative Polyfill path.
+
 ### 3. The Universal Delegate / In-Page Agent (Gold Level)
-For complex multi-step workflows, writing explicit tools is exhausting and couples the backend API too tightly to the UI flow.
+For complex multi-step workflows, enable the **Universal Delegate**, which registers a single powerful WebMCP tool: `delegate_page_task`. A top-level browser agent calls this tool, and the embedded **In-Page Agent** takes over, running a full ReAct loop (Observe → Think → Act) directly inside the tab.
 
-Instead, enable the **Universal Delegate**, which registers a single, highly powerful WebMCP tool: `delegate_page_task`. When a top-level browser agent calls this tool, it spins up our **In-Page Agent** natively within the browser tab.
-
-Powered by the zero-cost **Chrome Prompt API** (`window.LanguageModel`) or a **Bring-Your-Own-Key OpenAI Provider**, the In-Page Agent runs its own ReAct loop (Observe → Think → Act) entirely locally. It parses a semantically labeled DOM, plans its next clicks and inputs, and natively dispatches browser events to autonomously achieve the delegated goal—all while securely prompting the user (Human-In-The-Loop) before clicking critical endpoints!
+Powered by the **Chrome Prompt API** (`globalThis.LanguageModel`) or a **Bring-Your-Own-Key OpenAI Provider**, the agent parses a semantically labeled DOM, plans its next actions, and dispatches real browser events — while prompting the user (Human-In-The-Loop) before critical actions.
 
 ```typescript
-import { WebMCPToolkit, InPageAgent, ChromePromptProvider, OpenAIProvider } from "universal-webmcp-agent";
+import { WebMCPToolkit, InPageAgent, ChromePromptProvider, OpenAIProvider } from "./dist/browser.js";
 
 const mcp = new WebMCPToolkit();
 
-// Initialize the local Prompt API session (or fallback to OpenAI REST API)
 let provider;
-if (window.LanguageModel) {
-  provider = new ChromePromptProvider(await window.LanguageModel.create({...}));
+if (globalThis.LanguageModel) {
+  provider = new ChromePromptProvider(await globalThis.LanguageModel.create({}));
 } else {
   provider = new OpenAIProvider({ apiKey: "sk-...", model: "gpt-4o-mini" });
 }
 
 mcp.enableUniversalDelegate({
-  agent: new InPageAgent({
-    llmProvider: provider,
-    maxSteps: 15
-  }),
-  // Automatically trigger Human-in-the-Loop for specific semantic elements to ensure safety
-  requireConfirmationFor: ["form[toolname='checkout_cart']"] 
+  agent: new InPageAgent({ llmProvider: provider, maxSteps: 15 }),
+  requireConfirmationFor: ["form[toolname='checkout_cart']"]
 });
 ```
 
@@ -75,27 +71,31 @@ mcp.enableUniversalDelegate({
 
 ## Why use the Universal WebMCP Agent Toolkit?
 
-- **Future-Proof**: Write code using impending W3C/WebMCP specs ([like Declarative HTML tools](https://github.com/webmachinelearning/webmcp/blob/53388c87ba372de6be84d5eb30a436c07d41944b/declarative-api-explainer.md)) today. The Polyfill covers you until browsers catch up.
-- **Zero-Cost Abstractions**: By plugging into `window.LanguageModel`, the In-Page Agent utilizes local edge models. It eliminates latency and token costs for micro-UI interactions (clicks, scrolling, typing).
-- **BYOK (Bring Your Own Key)**: A fully functional `fetch`-based `OpenAIProvider` is included out of the box so site developers can power the In-Page Agent dynamically using robust cloud models without heavy Node.js SDK imports.
-- **Privacy First**: Sensitive DOM structures and form elements are semantically digested and reasoning is done entirely on-device by the In-Page Agent, keeping user data local.
-- **Human-In-The-Loop**: Fully integrated authorization hooks pause the internal loops and securely leverage WebMCP's `client.requestUserInteraction()` to guarantee safety before destructive actions.
+- **Future-Proof**: Write code using impending W3C/WebMCP specs today. The Polyfill covers you until browsers catch up.
+- **Zero Dependencies**: The entire SDK is self-contained with no runtime dependencies. The full agent bundle is **15 kb minified**.
+- **Split Bundles**: Use `dist/declarative.js` (**7 kb**) for form-only pages, or `dist/browser.js` (**15 kb**) for the full ReAct agent.
+- **Zero-Cost Inference**: By plugging into `globalThis.LanguageModel`, the In-Page Agent uses local edge models — eliminating latency and token costs for micro-UI interactions.
+- **BYOK**: A `fetch`-based `OpenAIProvider` is included so you can power the In-Page Agent with cloud models without any heavy SDK imports.
+- **Privacy First**: DOM reasoning happens entirely on-device. Sensitive form structure never leaves the browser.
+- **Human-In-The-Loop**: Authorization hooks pause the agent loop and call `client.requestUserInteraction()` before destructive actions.
 
 ## Repository Structure
-- `packages/core/`: The fully typed TypeScript SDK containing the ReAct loops, WebMCP bridges, and DOM polyfills.
-- `examples/delegate-agent.html`: Proves the `delegate_page_task` WebMCP integration and HITL logic using the local Chrome Prompt API.
-- `examples/declarative-forms.html`: End-to-end test of the native Declarative DOM polyfills bypassing agents completely.
-- `examples/byok-openai.html`: End-to-end test of the BYOK OpenAIPovider powering the In-Page SDK loop.
+- `packages/core/` — The fully typed TypeScript SDK. No runtime dependencies.
+- `dist/browser.js` — Full bundle: ReAct agent, LLM providers, DOM polyfill. **15 kb minified.**
+- `dist/declarative.js` — Slim bundle: Declarative Polyfill + WebMCPToolkit only. **7 kb minified.**
+- `examples/delegate-agent.html` — End-to-end demo of `delegate_page_task` with Chrome Prompt API.
+- `examples/declarative-forms.html` — End-to-end demo of the Declarative Polyfill.
+- `examples/byok-openai.html` — End-to-end demo of OpenAI BYOK powering the In-Page Agent.
 
-## Documentation
-See the [User Guide](docs/USER-GUIDE.md) for full installation instructions, API documentation, and explicit integration patterns.
-
-To hack on the Toolkit locally:
+## Building locally
 
 ```bash
 cd packages/core
 npm install
-npm run build # Uses esbuild to bundle dist/browser.js and dist/index.js
+npm run build          # Produces dist/browser.js (full) and dist/declarative.js (slim)
+npm run build:full     # Full bundle only
+npm run build:declarative  # Slim bundle only
+npm run lint           # oxlint (perf) + eslint (idiomatic TS)
 ```
 
 ## License

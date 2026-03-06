@@ -1,63 +1,90 @@
 # Universal WebMCP Agent Toolkit: User Guide
 
-Welcome to the Universal WebMCP Agent Toolkit!
-
-This library allows you to build "AI-Native Web Applications" by seamlessly bridging your frontend directly into overarching AI Browser Agents according to the [WebMCP Standard](https://webmcp.link/).
+This library lets you build AI-Native Web Applications by bridging your frontend into overarching AI Browser Agents via the [WebMCP Standard](https://webmcp.link/).
 
 ## Table of Contents
-1. [Core Concepts](#core-concepts)
+1. [Installation](#installation)
 2. [Level 1: Explicit Tools (Bronze)](#level-1-explicit-tools-bronze)
 3. [Level 2: Declarative Forms (Silver)](#level-2-declarative-forms-silver)
 4. [Level 3: The Universal Delegate (Gold)](#level-3-the-universal-delegate-gold)
 
 ---
 
+## Installation
+
+Build the SDK locally:
+
+```bash
+cd packages/core
+npm install
+npm run build
+```
+
+This produces two bundles — pick the one that fits your needs:
+
+| Bundle                | Size      | When to use                                                         |
+| --------------------- | --------- | ------------------------------------------------------------------- |
+| `dist/browser.js`     | **15 kb** | Full ReAct agent + LLM providers + Declarative Polyfill             |
+| `dist/declarative.js` | **7 kb**  | Declarative Polyfill + `WebMCPToolkit` only (no LLM, no agent loop) |
+
+Load the bundle directly in your HTML:
+```html
+<script src="dist/browser.js"></script>
+<!-- exposes window.UniversalWebMCPAgent -->
+
+<!-- or, for declarative-only pages: -->
+<script src="dist/declarative.js"></script>
+<!-- exposes window.DeclarativeWebMCP -->
+```
+
+The SDK has **zero runtime dependencies**.
+
+---
+
 ## Core Concepts
 
-The **Web Model Context Protocol (WebMCP)** is a standard connecting web applications to AI agents. It does so by exposing arbitrary webpage capabilities as tools. For example, a search bar on an e-commerce site can become a `search_catalog` tool exposed globally to any compliant browser agent.
+The **Web Model Context Protocol (WebMCP)** connects web applications to AI agents by exposing page capabilities as callable tools. For example, a search bar can become a `search_catalog` tool, callable by any compliant browser agent.
 
-Our Toolkit implements these connections progressively, lowering the barrier to entry immediately, while setting you up for advanced autonomous UI automation.
+The Toolkit implements three progressive levels of integration.
 
 ---
 
 ## Level 1: Explicit Tools (Bronze)
 
-The simplest way to use WebMCP is by registering imperative functions. You write the function, tell the agent what arguments you need using a Zod schema, and the agent invokes it.
+Register imperative functions as named tools. You define a schema object with a `parse(data)` method — any Zod schema works here since they implement this interface natively.
 
-### Usage
 ```typescript
-import { WebMCPToolkit } from "universal-webmcp-agent";
-import { z } from "zod";
-
-const mcp = new WebMCPToolkit();
+const mcp = new UniversalWebMCPAgent.WebMCPToolkit();
 
 mcp.tools.register({
   name: "get_weather",
   description: "Resolves temperature for a city.",
-  schema: z.object({ city: z.string() }),
+  // Any object with parse(data) satisfies the schema interface.
+  // Tip: a Zod schema (z.object({...})) works here directly.
+  schema: {
+    parse: (data) => ({ city: String(data.city) }),
+    _shape: { city: { isOptional: () => false } }
+  },
   execute: async ({ city }, client) => {
-    // 1st party logic here
     const data = await weatherApi.fetch(city);
     return { weather: data.status, degrees: data.temp };
   }
 });
 ```
 
-Here, the Toolkit safely transpiles your Zod schema into the exact JSON schema formats required by the browser's `navigator.modelContext`, handling validation failures and strict type bridging automatically. 
+The Toolkit converts the `_shape` definition into the JSON Schema format required by `navigator.modelContext.registerTool()`. If using a Zod schema, the JSON Schema conversion uses Zod's `_shape` property automatically.
 
 ---
 
 ## Level 2: Declarative Forms (Silver)
 
-The [WebMCP declarative API draft](https://github.com/webmachinelearning/webmcp/blob/53388c87ba372de6be84d5eb30a436c07d41944b/declarative-api-explainer.md) specifies that standard HTML `<form>` elements should be exposed as AI tools organically if they contain `toolname` or `toolparamdescription` attributes.
+The [WebMCP declarative API draft](https://github.com/webmachinelearning/webmcp/blob/53388c87ba372de6be84d5eb30a436c07d41944b/declarative-api-explainer.md) specifies that HTML `<form>` elements with `toolname` attributes should be exposed as AI tools natively. Since native browser support will take years, use the included **Declarative Polyfill** today.
 
-Since native support in browsers will take years to fully roll out, our Toolkit relies on a **Declarative Polyfill**. You can write standard-compliant HTML *today*.
-
-### Usage
+> Use `dist/declarative.js` (7 kb) instead of the full bundle for pages that only need this feature.
 
 **1. Write your HTML:**
 ```html
-<form toolname="search_flight" tooldescription="Searches the internal system for available flights">
+<form toolname="search_flight" tooldescription="Searches for available flights">
     <input type="text" name="destination" required toolparamdescription="The city or airport code">
     <button type="submit">Search Flights</button>
 </form>
@@ -65,22 +92,18 @@ Since native support in browsers will take years to fully roll out, our Toolkit 
 
 **2. Initialize the Polyfill:**
 ```typescript
-import { WebMCPToolkit, DeclarativePolyfill } from "universal-webmcp-agent";
+const { WebMCPToolkit, DeclarativePolyfill } = DeclarativeWebMCP;
 
 const mcp = new WebMCPToolkit();
 const polyfill = new DeclarativePolyfill(mcp);
-
-polyfill.start(); // Scans DOM, creates WebMCP registrations
+polyfill.start(); // Scans the DOM and registers all toolname forms
 ```
 
-**3. Intercept Agent Executions without Page Reloads:**
+**3. Intercept agent-triggered submits:**
 ```typescript
 document.getElementById('my-form').addEventListener('submit', async (e) => {
-    // Check if the submit was purely a synthetic agent execution
     if (e.agentInvoked) {
-       e.preventDefault(); 
-       
-       // Handle it asynchronously and stream JSON strictly back to the overarching agent
+       e.preventDefault();
        e.respondWith(new Promise(resolve => {
            resolve({ status: "success", data: "..." });
        }));
@@ -92,42 +115,37 @@ document.getElementById('my-form').addEventListener('submit', async (e) => {
 
 ## Level 3: The Universal Delegate (Gold)
 
-If your workflow cannot easily be distilled into explicit backend API actions or single forms, you can deploy the **Universal Delegate / In-Page Agent**.
+For complex multi-step workflows, enable the **Universal Delegate**. This registers a single powerful tool: `delegate_page_task({ task: string })`. When a top-level browser agent invokes it, the embedded **In-Page Agent** takes over and runs a full ReAct loop inside the tab.
 
-Instead of writing specific tools, you register a single incredibly powerful tool: `delegate_page_task({"task": "string"})`. A top-level browser agent calls this when it doesn't want to parse your web UI manually.
+### Choosing an LLM Provider
 
-Our SDK spins up a locally-embedded AI (an **In-Page Agent**) inside your tab. It runs a ReAct loop: Observe, Think, Act. It natively dispatches `.click()` and `Event('input')` directly on complex DOM states.
-
-### Choosing your LLM Provider
-To guarantee zero latency (as the agent might need to perform dozens of clicks rapidly), it integrates out-of-the-box with Chrome's experimental local model APIs. It also provides a BYOK (Bring Your Own Key) wrapper for OpenAI when the local model is insufficient or missing.
+| Provider               | When to use                                                         |
+| ---------------------- | ------------------------------------------------------------------- |
+| `ChromePromptProvider` | Chrome with `globalThis.LanguageModel` available (local, zero-cost) |
+| `OpenAIProvider`       | Fallback via REST API with your own API key (BYOK)                  |
 
 ### Usage
 
 ```typescript
-import { WebMCPToolkit, InPageAgent, ChromePromptProvider, OpenAIProvider } from "universal-webmcp-agent";
+const { WebMCPToolkit, InPageAgent, ChromePromptProvider, OpenAIProvider } = UniversalWebMCPAgent;
 
 const mcp = new WebMCPToolkit();
 
-// Decide on provider based on browser capabilities
 let provider;
-if (window.LanguageModel) {
-    provider = new ChromePromptProvider(await window.LanguageModel.create({...}));
+if (globalThis.LanguageModel) {
+    provider = new ChromePromptProvider(await globalThis.LanguageModel.create({}));
 } else {
-    // Fast REST API abstraction with guaranteed structured JSON schema parsing
-    provider = new OpenAIProvider({ apiKey: "YOUR_API_KEY", model: "gpt-4o-mini" });
+    provider = new OpenAIProvider({ apiKey: "YOUR_OPENAI_KEY", model: "gpt-4o-mini" });
 }
 
-// Enable the Agent
 mcp.enableUniversalDelegate({
     agent: new InPageAgent({
         llmProvider: provider,
         maxSteps: 15
     }),
-    
-    // Safety boundaries! If the AI tries to submit the checkout element, 
-    // the toolkit automatically pauses the loop and prompts the User via the WebMCP HITL specs.
-    requireConfirmationFor: ["form[toolname='checkout_cart']"] 
+    // Pause the agent loop and prompt the user before submitting critical elements
+    requireConfirmationFor: ["form[toolname='checkout_cart']"]
 });
 ```
 
-When an external agent invokes `delegate_page_task`, your React/Next.js/HTML interface is completely driven natively and securely by your curated embedded LLM, drastically improving success rates compared to generic screen-scraping agents.
+When an external agent calls `delegate_page_task`, your page is driven natively and securely by the embedded LLM — with Human-In-The-Loop authorization for any action matching a `requireConfirmationFor` selector.
