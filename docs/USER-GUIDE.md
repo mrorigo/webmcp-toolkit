@@ -164,4 +164,8 @@ mcp.enableUniversalDelegate({
 });
 ```
 
+### Chat Integration
+
+For a beautiful, production-ready chat interface, the `InPageAgent` integrates perfectly with [Deep Chat](https://github.com/OvidijusParsiunas/deep-chat). See the [Deep Chat Guide](DEEP-CHAT-GUIDE.md) for detailed instructions.
+
 When an external agent calls `delegate_page_task`, your page is driven natively and securely by the embedded LLM — with Human-In-The-Loop authorization for any action matching a `requireConfirmationFor` selector.

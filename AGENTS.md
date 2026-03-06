@@ -24,12 +24,12 @@ Most agentic systems assume a "Think-Act" loop (ReAct). This repo supports a "Ze
 In `web-mcp-toolkit.ts`, the `enableUniversalDelegate()` method is not just another tool.
 
 **Non-Obvious:** It acts as a **Context Handoff**. 
-- An external, high-level agent (like a system-wide assistant) can "delegate" a task to the `mini-page-agent` by calling this tool.
-- The `mini-page-agent` then runs its own internal ReAct loop within the page context.
+- An external, high-level agent (like a system-wide assistant) can "delegate" a task to the **In-Page Agent** by calling this tool.
+- The **In-Page Agent** then runs its own internal ReAct loop within the page context.
 - This creates a tiered architecture where a "Master Agent" doesn't need to see the messy DOM; it just sees the "Universal Delegate" tool.
 
 ## 4. Guardrails as a Compiler Hint
-The hyper-strict ESLint/TypeScript configuration (see [AI_TYPESCRIPT_SETUP_BASELINE.md](file:///Users/origo/src/mini-page-agent/docs/AI_TYPESCRIPT_SETUP_BASELINE.md)) is not for human readability.
+The hyper-strict ESLint/TypeScript configuration (see [AI_TYPESCRIPT_SETUP_BASELINE.md](docs/AI_TYPESCRIPT_SETUP_BASELINE.md)) is not for human readability.
 
 **Non-Obvious:** Strictness is used to **bias the LLM's completion engine**.
 - By forbidding `null` (via `unicorn/no-null`), we remove a binary choice for the agent (`null` vs `undefined`), reducing the variance in its proposed code changes.
