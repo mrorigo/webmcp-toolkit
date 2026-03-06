@@ -10,19 +10,20 @@ Forget standard "recommended" sets. We use a combination of `@typescript-eslint`
 
 ### Required Plugins
 - `@typescript-eslint/eslint-plugin`: For deep type-aware linting.
-- `eslint-plugin-unicorn`: For opinionated, modern JavaScript idioms.
+- `eslint-plugin-unicorn`: For opinionated, modern JavaScript idioms. We use the **recommended** unicorn set as our foundation.
 
 ### The Guardrail Rules
 These rules are non-negotiable for AI-driven development:
 
-| Rule                         | Purpose                            | Why for AI?                                                                                        |
-| :--------------------------- | :--------------------------------- | :------------------------------------------------------------------------------------------------- |
-| `prefer-nullish-coalescing`  | Use `??` instead of double-pipe or | Prevents agents from accidentally overriding `0` or `""` with defaults.                            |
-| `prefer-optional-chain`      | Use `?.` everywhere                | Forces safe property access and reduces verbose `if` guards.                                       |
-| `unicorn/prefer-global-this` | Use `globalThis`                   | Standardizes global access across Node, Browser, and Workers.                                      |
-| `no-inferrable-types`        | Remove `: string = ""`             | Keeps the code clean and prevents redundant type noise.                                            |
-| `unicorn/filename-case`      | Enforce `kebab-case`               | Prevents the messy mix of PascalCase and camelCase filenames.                                      |
-| `unicorn/no-null`            | Prefer `undefined`                 | Simplifies state checks; `null` is often a source of "which one should I use?" confusion for LLMs. |
+| Rule                                           | Purpose                            | Why for AI?                                                                                        |
+| :--------------------------------------------- | :--------------------------------- | :------------------------------------------------------------------------------------------------- |
+| `@typescript-eslint/prefer-nullish-coalescing` | Use `??` instead of double-pipe or | Prevents agents from accidentally overriding `0` or `""` with defaults.                            |
+| `@typescript-eslint/prefer-optional-chain`     | Use `?.` everywhere                | Forces safe property access and reduces verbose `if` guards.                                       |
+| `@typescript-eslint/consistent-type-imports`   | Enforce `import type`              | Prevents circular dependencies and clarifies that imports are for types only.                      |
+| `unicorn/prefer-global-this`                   | Use `globalThis`                   | Standardizes global access across Node, Browser, and Workers.                                      |
+| `@typescript-eslint/no-inferrable-types`       | Remove `: string = ""`             | Keeps the code clean and prevents redundant type noise.                                            |
+| `unicorn/filename-case`                        | Enforce `kebab-case`               | Prevents the messy mix of PascalCase and camelCase filenames.                                      |
+| `unicorn/no-null`                              | Prefer `undefined`                 | Simplifies state checks; `null` is often a source of "which one should I use?" confusion for LLMs. |
 
 ---
 
@@ -35,16 +36,16 @@ We combine `oxlint` for high-performance logic/performance checks with `eslint` 
 
 ```json
 "scripts": {
-  "lint": "npx oxlint -D perf && npx eslint src/**/*.ts",
-  "build": "npx esbuild src/index.ts --bundle --outfile=dist/bundle.js"
+  "lint": "npx -y oxlint -D perf && npx eslint src/**/*.ts",
+  "build": "npm run build:full && npm run build:declarative"
 }
 ```
 
 ---
 
-## 3. Going Even Further: The Ironclad Repo
+## 3. Recommended: The Ironclad Repo
 
-To truly ensure an AI agent never commits "garbage" code, you must move these checks to the pre-commit stage.
+To truly ensure an AI agent never commits "garbage" code, we recommend moving these checks to the pre-commit stage via [Husky](https://typicode.github.io/husky/).
 
 ### Husky & Lint-Staged
 Install Husky and lint-staged to ensure that every single commit is verified.
