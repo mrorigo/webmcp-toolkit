@@ -6,6 +6,7 @@ export default [
     {
         ignores: ["dist/**", "node_modules/**"]
     },
+    unicornPlugin.configs.recommended,
     {
         files: ["src/**/*.ts"],
         languageOptions: {
@@ -24,16 +25,6 @@ export default [
             "@typescript-eslint/prefer-nullish-coalescing": "error",
             "@typescript-eslint/prefer-optional-chain": "error",
             "@typescript-eslint/prefer-string-starts-ends-with": "error",
-            "arrow-body-style": "off",
-            "capitalized-comments": "off",
-            "curly": "off",
-            "id-length": "off",
-            "init-declarations": "off",
-            "max-lines-function": "off",
-            "max-statements": "off",
-            "no-magic-numbers": "off",
-            "no-ternary": "off",
-            "sort-keys": "off",
             "unicorn/filename-case": ["error", { "case": "kebabCase" }],
             "unicorn/no-null": "error",
             "unicorn/prefer-array-find": "error",

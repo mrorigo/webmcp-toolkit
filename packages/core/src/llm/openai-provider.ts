@@ -65,15 +65,17 @@ export class OpenAIProvider implements ILLMProvider {
         });
 
         if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`OpenAI API Error: ${response.status} - ${errText}`);
+            const errorText = await response.text();
+            throw new Error(`OpenAI API Error: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
         const output = data.choices[FIRST_CHOICE_INDEX]?.message?.content ?? "";
 
-        this.messages.push({ content: userPrompt, role: "user" });
-        this.messages.push({ content: output, role: "assistant" });
+        this.messages.push(
+            { content: userPrompt, role: "user" },
+            { content: output, role: "assistant" }
+        );
 
         return output;
     }
