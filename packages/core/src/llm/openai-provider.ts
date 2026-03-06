@@ -70,7 +70,7 @@ export class OpenAIProvider implements ILLMProvider {
         }
 
         const data = await response.json();
-        const output = data.choices[FIRST_CHOICE_INDEX]?.message?.content ?? "";
+        const output = data.choices?.[FIRST_CHOICE_INDEX]?.message?.content ?? "";
 
         this.messages.push(
             { content: userPrompt, role: "user" },

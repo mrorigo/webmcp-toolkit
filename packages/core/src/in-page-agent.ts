@@ -65,24 +65,24 @@ export class InPageAgent {
         const agentId = args['agent_id'] ?? args['id'] ?? args['element_id'];
         const textToInput = args['text'] !== undefined ? args['text'] : args['value'];
 
-        const el = this.indexer.actionableElements.get(agentId);
-        if (!el) {
+        const element = this.indexer.actionableElements.get(agentId);
+        if (!element) {
             this.log(`Error: Element with ID ${agentId} not found.`, "error");
             return true; // Continue
         }
 
         if (actionName === 'input_text' || actionName === 'input') {
-            el.focus();
-            (el as HTMLInputElement).value = textToInput ?? '';
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-            const label = this.indexer.getElementLabel(el) || el.tagName.toLowerCase();
+            element.focus();
+            (element as HTMLInputElement).value = textToInput ?? '';
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+            const label = this.indexer.getElementLabel(element) || element.tagName.toLowerCase();
             this.log(`Typed text into [${label}: ID ${agentId}]`, "success");
             this.actionHistory.push(`typed "${textToInput}" into [${label}: ID ${agentId}]`);
         } else if (actionName === 'click_element' || actionName === 'click') {
-            el.focus();
-            el.click();
-            const label = this.indexer.getElementLabel(el) || el.tagName.toLowerCase();
+            element.focus();
+            element.click();
+            const label = this.indexer.getElementLabel(element) || element.tagName.toLowerCase();
             this.log(`Clicked element [${label}: ID ${agentId}]`, "success");
             this.actionHistory.push(`clicked element [${label}: ID ${agentId}]`);
         } else {
@@ -95,7 +95,7 @@ export class InPageAgent {
         return true; // Continue loop
     }
 
-    private async countAndBuildPrompt(compressLevel: number, historyLimit: number): Promise<{ prompt: string; tokens: number }> {
+    private async countAndBuildPrompt(compressLevel: number, historyLimit: number): Promise<{ llmPrompt: string; tokens: number }> {
         const domState = this.indexer.serializeDOM(globalThis.document.body, compressLevel);
 
         let historyStr = "None";
@@ -106,7 +106,7 @@ export class InPageAgent {
 
         const userPrompt = `Current Goal: ${this.task}\n\nPast Actions Taken In Order:\n${historyStr}\n\n${domState}\n\nBased on your past actions and the current state, what is the exact next logical action? Output ONLY a JSON object with 'tool' and 'arguments' properties. No markdown formatting.`;
         const tokens = await this.session.countPromptTokens(userPrompt);
-        return { prompt: userPrompt, tokens };
+        return { llmPrompt: userPrompt, tokens };
     }
 
     /**
@@ -116,7 +116,7 @@ export class InPageAgent {
     async step(): Promise<boolean> {
         let compressLevel = 0;
         let historyLimit = this.actionHistory.length || 1; // If 0, we still want 1 for serialization logic (using || here because length 0 is falsy and we want 1)
-        let { prompt, tokens } = await this.countAndBuildPrompt(compressLevel, historyLimit);
+        let { llmPrompt, tokens } = await this.countAndBuildPrompt(compressLevel, historyLimit);
 
         // Utilize the provider's native contextWindow if available, reserving a 10% safety margin for the assistant response and internal system prompts.
         // Fallback to 4000 if not available.
@@ -124,18 +124,18 @@ export class InPageAgent {
 
         if (tokens > MAX_CONTEXT) {
             compressLevel = 1;
-            ({ prompt, tokens } = await this.countAndBuildPrompt(compressLevel, historyLimit));
+            ({ llmPrompt, tokens } = await this.countAndBuildPrompt(compressLevel, historyLimit));
         }
 
         if (tokens > MAX_CONTEXT) {
             compressLevel = 2;
             historyLimit = Math.min(historyLimit, 3);
-            ({ prompt, tokens } = await this.countAndBuildPrompt(compressLevel, historyLimit));
+            ({ llmPrompt, tokens } = await this.countAndBuildPrompt(compressLevel, historyLimit));
         }
 
         if (tokens > MAX_CONTEXT) {
             this.log(`Warning: DOM is incredibly large (${tokens} tokens). Forcibly truncating literal string.`, "warning");
-            prompt = prompt.slice(0, 15000); // Hard slice string 
+            llmPrompt = llmPrompt.slice(0, 15000); // Hard slice string 
         }
 
         this.log(`Prompting LLM with current state (Tokens: ~${tokens}, Compress Level: ${compressLevel})...`, "info");
@@ -143,7 +143,7 @@ export class InPageAgent {
         try {
             const allowedTools = this.hasTakenAction ? ["input_text", "click_element", "done"] : ["input_text", "click_element"];
             const tempSession = await this.session.clone();
-            const responseText = await tempSession.prompt(prompt, {
+            const responseText = await tempSession.prompt(llmPrompt, {
                 responseConstraint: {
                     type: "object",
                     properties: {

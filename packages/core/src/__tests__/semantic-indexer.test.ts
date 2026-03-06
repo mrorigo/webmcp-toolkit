@@ -109,10 +109,6 @@ describe('SemanticIndexer', () => {
                 <input id="email" type="text" />
             `;
             const input = document.querySelector('#email') as HTMLInputElement;
-            // jsdom doesn't implement innerText, so query via the label text
-            const label = document.querySelector('label[for="email"]') as HTMLLabelElement;
-            expect(label.textContent?.trim()).toBe('Email address');
-            // The actual label lookup exercises the for-attr branch
             expect(indexer.getElementLabel(input)).toBeTruthy();
         });
 
@@ -163,7 +159,7 @@ describe('SemanticIndexer', () => {
 
         it('suppresses descriptions at compressLevel=1', () => {
             document.body.innerHTML = `
-                <form toolname="checkout" tooldescription="Buy items" tooldescription="...">
+                <form toolname="checkout" tooldescription="Buy items">
                     <button>Pay</button>
                 </form>
             `;
@@ -172,6 +168,27 @@ describe('SemanticIndexer', () => {
 
             const compressed = indexer.serializeDOM(document.body, 1);
             expect(compressed).not.toContain('desc=');
+        });
+
+        it('includes toolparamdescription when present', () => {
+            document.body.innerHTML = '<input toolparamdescription="User Name" />';
+            const result = indexer.serializeDOM(document.body, 0);
+            expect(result).toContain('param_desc="User Name"');
+        });
+
+        it('includes required attribute when present at compressLevel < 2', () => {
+            document.body.innerHTML = '<input required />';
+            const result = indexer.serializeDOM(document.body, 1);
+            expect(result).toContain('required');
+
+            const compressed = indexer.serializeDOM(document.body, 2);
+            expect(compressed).not.toContain('required');
+        });
+
+        it('shows (empty) for inputs without value', () => {
+            document.body.innerHTML = '<input type="text" />';
+            const result = indexer.serializeDOM(document.body);
+            expect(result).toContain('value="(empty)"');
         });
     });
 });

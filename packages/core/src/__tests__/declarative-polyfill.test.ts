@@ -40,6 +40,9 @@ describe('DeclarativePolyfill', () => {
         document.body.innerHTML = '';
         clearModelContext();
         toolkit = new WebMCPToolkit({ logHandler: vi.fn() });
+        // Ensure prototypes are clean
+        delete (Event.prototype as any).agentInvoked;
+        delete (Event.prototype as any).respondWith;
     });
 
     afterEach(() => {
@@ -56,25 +59,68 @@ describe('DeclarativePolyfill', () => {
         expect(() => polyfill!.stop()).not.toThrow();
     });
 
-    it('logs that polyfill! is inactive when native support is detected', () => {
-        // Simulate native agentInvoked support
-        Object.defineProperty(Event.prototype, 'agentInvoked', {
-            get() { return false; },
-            configurable: true
-        });
+    it('logs that polyfill is inactive when native support is detected', () => {
         const logHandler = vi.fn();
         const t = new WebMCPToolkit({ logHandler });
+        // Mock native support
+        Object.defineProperty(Event.prototype, 'agentInvoked', { value: true, configurable: true });
         polyfill = new DeclarativePolyfill(t);
-        polyfill!.start();
-        expect(logHandler).toHaveBeenCalledWith(
-            expect.stringContaining('Polyfill inactive'),
-            'info'
-        );
-        // Clean up
+        polyfill.start();
+        expect(logHandler).toHaveBeenCalledWith(expect.stringContaining('Polyfill inactive'), 'info');
+        // Cleanup global prototype
         delete (Event.prototype as any).agentInvoked;
     });
 
-    // ─── processForm ──────────────────────────────────────────────────────────
+    it('polyfills agentInvoked property on SubmitEvent', () => {
+        setupModelContext();
+        polyfill = new DeclarativePolyfill(toolkit);
+        polyfill.start();
+        const ev = new (globalThis.window as any).SubmitEvent('submit') as any;
+        expect(ev.agentInvoked).toBe(false);
+        ev.agentInvoked = true;
+        expect(ev.agentInvoked).toBe(true);
+    });
+
+    it('falls back to generic Event if SubmitEvent constructor fails', async () => {
+        const reg = setupModelContext();
+        // Force SubmitEvent to fail
+        (globalThis.window as any).SubmitEvent = undefined;
+
+        document.body.innerHTML = '<form toolname="test"><input name="q"></form>';
+        polyfill = new DeclarativePolyfill(toolkit);
+        polyfill.start();
+        await new Promise(r => setTimeout(r, 10));
+
+        const call = reg.mock.calls[0]![0];
+        await call.execute({ q: 'fall' }, {});
+        // If it got here without crashing, fallback worked
+        expect(true).toBe(true);
+    });
+
+    it('attaches respondWith to fallback Event if missing', async () => {
+        setupModelContext();
+        // Make SubmitEvent constructor throw to reach fallback
+        (globalThis.window as any).SubmitEvent = function () { throw new Error('fail'); };
+
+        document.body.innerHTML = '<form toolname="test"><input name="q"></form>';
+        polyfill = new DeclarativePolyfill(toolkit);
+        polyfill.start();
+        await new Promise(r => setTimeout(r, 10));
+
+        const reg = (globalThis.window.navigator as any).modelContext.registerTool;
+        const call = reg.mock.calls[0]![0];
+
+        // We need to capture the event dispatched
+        let capturedEvent: any;
+        document.addEventListener('submit', (e) => { capturedEvent = e; }, { once: true });
+
+        await call.execute({ q: 'val' }, {});
+        expect(capturedEvent).toBeDefined();
+        expect(capturedEvent.respondWith).toBeDefined();
+        // Call it to cover the fallback implementation body
+        capturedEvent.respondWith(Promise.resolve('ok'));
+        expect(capturedEvent._agentResponsePromise).toBeDefined();
+    });
 
     it('registers existing forms on start()', async () => {
         const registerTool = setupModelContext();

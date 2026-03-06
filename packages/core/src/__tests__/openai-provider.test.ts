@@ -98,6 +98,16 @@ describe('OpenAIProvider', () => {
             const headers = (globalThis.fetch as any).mock.calls[0][1].headers;
             expect(headers['Authorization']).toBe('Bearer my-key');
         });
+
+        it('handles empty choices from API gracefully', async () => {
+            globalThis.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({ choices: [] })
+            } as any);
+            const p = makeProvider();
+            const result = await p.prompt('hi');
+            expect(result).toBe('');
+        });
     });
 
     // ─── clone() ─────────────────────────────────────────────────────────────

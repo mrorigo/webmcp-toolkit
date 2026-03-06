@@ -11,7 +11,7 @@ describe('WebMCPToolkit', () => {
     let toolkit: WebMCPToolkit;
 
     beforeEach(() => {
-        toolkit = new WebMCPToolkit();
+        toolkit = new WebMCPToolkit({ logHandler: vi.fn() });
         // Ensure navigator.modelContext is absent by default
         Object.defineProperty(globalThis, 'window', {
             value: { navigator: {} },
@@ -24,7 +24,8 @@ describe('WebMCPToolkit', () => {
 
     it('uses default console logger when no logHandler provided', () => {
         const spy = vi.spyOn(console, 'log').mockImplementation(() => { });
-        toolkit.log('hello', 'info');
+        const t = new WebMCPToolkit();
+        t.log('hello', 'info');
         expect(spy).toHaveBeenCalledWith(expect.stringContaining('hello'));
         spy.mockRestore();
     });
@@ -66,6 +67,43 @@ describe('WebMCPToolkit', () => {
             expect.stringContaining('test_tool'),
             'warn'
         );
+    });
+
+    it('logs warning when window.navigator is missing', async () => {
+        const logHandler = vi.fn();
+        const t = new WebMCPToolkit({ logHandler });
+        // Temporarily remove window
+        const oldWindow = globalThis.window;
+        (globalThis as any).window = undefined;
+
+        t.tools.register({
+            name: 'no_window',
+            description: 'Test',
+            schema: makeSchema({}),
+            execute: async () => ({})
+        });
+
+        (globalThis as any).window = oldWindow;
+        expect(logHandler).toHaveBeenCalledWith(expect.stringContaining('no_window'), 'warn');
+    });
+
+    it('registers tool even if schema._shape is missing', async () => {
+        const registerTool = vi.fn();
+        Object.defineProperty(globalThis, 'window', {
+            value: { navigator: { modelContext: { registerTool } } },
+            writable: true, configurable: true
+        });
+
+        toolkit.tools.register({
+            name: 'no_shape',
+            description: 'Test',
+            schema: { parse: (v) => v }, // No _shape
+            execute: async () => 'ok'
+        });
+
+        await new Promise(r => setTimeout(r, 10));
+        expect(registerTool).toHaveBeenCalledOnce();
+        expect(registerTool.mock.calls[0]![0].inputSchema.properties).toEqual({});
     });
 
     // ─── askUserToConfirm ─────────────────────────────────────────────────────
@@ -135,7 +173,7 @@ describe('WebMCPToolkit', () => {
 
         await new Promise(r => setTimeout(r, 10));
         expect(registerTool).toHaveBeenCalledOnce();
-        const call = registerTool.mock.calls[0]?.[0];
+        const call = registerTool.mock.calls[0]![0];
         expect(call).toBeDefined();
         expect(call.name).toBe('native_tool');
         expect(call.inputSchema.properties.arg1.type).toBe('string');
@@ -314,5 +352,129 @@ describe('WebMCPToolkit', () => {
         await new Promise(r => setTimeout(r, 10));
         const call = registerTool.mock.calls[0]?.[0];
         await expect(call.execute({ not_a_task: 123 } as any, {})).rejects.toThrow("task' must be a string");
+    });
+
+    describe('onAction branches', () => {
+        let registerTool: any;
+        let mockAgent: any;
+        let mockElement: any;
+
+        beforeEach(() => {
+            registerTool = vi.fn();
+            Object.defineProperty(globalThis, 'window', {
+                value: {
+                    navigator: { modelContext: { registerTool } },
+                    confirm: vi.fn().mockReturnValue(true)
+                },
+                writable: true, configurable: true
+            });
+
+            mockElement = {
+                matches: vi.fn().mockImplementation((s: string) => s === 'input'),
+                tagName: 'INPUT',
+                id: 'my-input',
+                getAttribute: vi.fn().mockImplementation((attr) => attr === 'placeholder' ? 'type here' : null),
+                closest: vi.fn().mockReturnValue(null)
+            };
+
+            mockAgent = {
+                run: vi.fn().mockImplementation(async () => {
+                    // Trigger onAction manually with various args
+                    await (mockAgent as any).onAction('input', { agent_id: '1', text: 'hi' });
+                    await (mockAgent as any).onAction('click', { agent_id: 'unknown' });
+                    await (mockAgent as any).onAction('click', { /* missing agent_id */ });
+                    return { status: 'success' };
+                }),
+                indexer: {
+                    actionableElements: new Map([['1', mockElement]]),
+                    getElementLabel: vi.fn().mockReturnValue(null)
+                },
+                onAction: null
+            };
+        });
+
+        it('handles missing element and missing targetId gracefully', async () => {
+            toolkit.enableUniversalDelegate({
+                agent: mockAgent as any,
+                requireConfirmationFor: ['input']
+            });
+            await new Promise(r => setTimeout(r, 10));
+            const call = registerTool.mock.calls[0]?.[0];
+            await call.execute({ task: 'test' }, {});
+            // Should not throw or confirm for the missing cases
+            expect(window.confirm).toHaveBeenCalledOnce(); // Only for the first 'input' action
+        });
+
+        it('covers input action label and description logic', async () => {
+            toolkit.enableUniversalDelegate({
+                agent: mockAgent as any,
+                requireConfirmationFor: ['input']
+            });
+            await new Promise(r => setTimeout(r, 10));
+            const call = registerTool.mock.calls[0]?.[0];
+            await call.execute({ task: 'test' }, {});
+            expect((window.confirm as any).mock.calls[0][0]).toContain('type "hi" into');
+            expect((window.confirm as any).mock.calls[0][0]).toContain('"type here"');
+        });
+
+        it('skips confirmation when requireConfirmationFor is not provided', async () => {
+            toolkit.enableUniversalDelegate({
+                agent: mockAgent as any
+                // requireConfirmationFor omitted
+            });
+            await new Promise(r => setTimeout(r, 10));
+            const call = registerTool.mock.calls[0]![0];
+            await call.execute({ task: 'test' }, {});
+            expect(window.confirm).not.toHaveBeenCalled();
+        });
+
+        it('handles submit input element in form for confirmation', async () => {
+            const mockForm = { matches: vi.fn().mockImplementation((s: string) => s === '#form1') };
+            const submockElement = {
+                matches: vi.fn().mockReturnValue(false),
+                tagName: 'INPUT',
+                type: 'submit',
+                id: 'sub',
+                closest: vi.fn().mockReturnValue(mockForm),
+                getAttribute: vi.fn()
+            };
+            mockAgent.indexer.actionableElements.set('sub-id', submockElement);
+            mockAgent.run = vi.fn().mockImplementation(async () => {
+                await (mockAgent as any).onAction('click', { agent_id: 'sub-id' });
+                return { status: 'success' };
+            });
+
+            toolkit.enableUniversalDelegate({
+                agent: mockAgent as any,
+                requireConfirmationFor: ['#form1']
+            });
+            await new Promise(r => setTimeout(r, 10));
+            const call = registerTool.mock.calls[0]![0];
+            await call.execute({ task: 'submit' }, {});
+            expect(mockForm.matches).toHaveBeenCalledWith('#form1');
+            expect(window.confirm).toHaveBeenCalled();
+        });
+
+        it('registers tool with optional schema fields', async () => {
+            toolkit.tools.register({
+                name: 'optional_tool',
+                description: 'Test',
+                schema: {
+                    parse: (v) => v,
+                    _shape: {
+                        opt: { isOptional: () => true }
+                    }
+                },
+                execute: async () => 'ok'
+            });
+
+            await new Promise(r => setTimeout(r, 10));
+            expect(registerTool).toHaveBeenLastCalledWith(expect.objectContaining({
+                name: 'optional_tool',
+                inputSchema: expect.objectContaining({
+                    required: []
+                })
+            }));
+        });
     });
 });

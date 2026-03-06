@@ -94,10 +94,10 @@ export class WebMCPToolkit {
                 description: tool.description,
                 inputSchema: jsonSchema,
                 readOnly: tool.readOnly ?? false,
-                execute: async (args: Record<string, unknown>, context: { client?: WebMCPClient }) => {
+                execute: async (args: Record<string, unknown>, context: { client: WebMCPClient | null }) => {
                     this.log(`Invoking tool ${tool.name}`, "info");
                     const parsedArgs = tool.schema.parse(args);
-                    return await tool.execute(parsedArgs, context?.client);
+                    return await tool.execute(parsedArgs, context.client ?? undefined);
                 }
             });
             this.log(`Successfully registered tool ${tool.name} with modelContext`, "success");
@@ -107,7 +107,7 @@ export class WebMCPToolkit {
     }
 
     /**
-     * Pauses execution to manually prompt the local human user using the overarching client's 
+     * Pauses execution to manually llmPrompt the local human user using the overarching client's 
      * Human-In-The-Loop capabilities. 
      * 
      * @param client The opaque WebMCP client context that triggered the tool.
@@ -167,26 +167,26 @@ export class WebMCPToolkit {
             execute: async (args, client) => {
                 this.log(`Delegating task to InPageAgent: ${args.task}`, "info");
 
-                config.agent.onAction = async (actionName: string, arg: Record<string, any>) => {
-                    const targetId = arg['agent_id'] ?? arg['id'] ?? arg['element_id'];
+                config.agent.onAction = async (actionName: string, argument: Record<string, any>) => {
+                    const targetId = argument['agent_id'] ?? argument['id'] ?? argument['element_id'];
                     if (targetId === undefined) return;
-                    const el = config.agent.indexer.actionableElements.get(String(targetId));
+                    const element = config.agent.indexer.actionableElements.get(String(targetId));
 
-                    if (el && config.requireConfirmationFor) {
+                    if (element && config.requireConfirmationFor) {
                         let requiresConfirm = false;
                         let matchedSelector = "";
 
                         for (const selector of config.requireConfirmationFor) {
-                            if (el.matches(selector)) {
+                            if (element.matches(selector)) {
                                 requiresConfirm = true;
                                 matchedSelector = selector;
                                 break;
                             }
                             // If the selector targets a form, we only want to confirm when the agent tries to submit the form
-                            const closestForm = el.closest('form');
+                            const closestForm = element.closest('form');
                             if (closestForm?.matches(selector)) {
                                 if (actionName === "click" || actionName === "click_element") {
-                                    if (el.tagName === 'BUTTON' || (el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'submit')) {
+                                    if (element.tagName === 'BUTTON' || (element.tagName === 'INPUT' && (element as HTMLInputElement).type === 'submit')) {
                                         requiresConfirm = true;
                                         matchedSelector = selector;
                                         break;
@@ -198,10 +198,10 @@ export class WebMCPToolkit {
                         if (requiresConfirm) {
                             this.log(`Agent action triggered Human-In-The-Loop hook for selector: ${matchedSelector}`, "action");
 
-                            const label = config.agent.indexer.getElementLabel(el) ?? el.getAttribute("name") ?? el.getAttribute("placeholder") ?? el.id ?? "Unnamed element";
-                            const actionDesc = actionName.includes("input") ? `type "${arg['text'] ?? arg['value']}" into` : `click on`;
+                            const label = config.agent.indexer.getElementLabel(element) || element.getAttribute("name") || element.getAttribute("placeholder") || element.id || "Unnamed element";
+                            const actionDesc = actionName.includes("input") ? `type "${argument['text'] ?? argument['value']}" into` : `click on`;
 
-                            const allowed = await this.askUserToConfirm(client, `The embedded agent wants to ${actionDesc} a critical element:\n<${el.tagName.toLowerCase()}> "${label}"\n\nAllow this action?`);
+                            const allowed = await this.askUserToConfirm(client, `The embedded agent wants to ${actionDesc} a critical element:\n<${element.tagName.toLowerCase()}> "${label}"\n\nAllow this action?`);
                             if (!allowed) {
                                 throw new Error("Action denied by user.");
                             }
