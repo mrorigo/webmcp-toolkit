@@ -1,5 +1,9 @@
 import { WebMCPToolkit } from "./WebMCPToolkit.js";
 
+/**
+ * A Polyfill enabling native, HTML-driven declarative WebMCP behavior today.
+ * Bypasses ReAct agent loops by directly mapping `<form toolname="...">` semantic tags to the browser's registry.
+ */
 export class DeclarativePolyfill {
     private toolkit: WebMCPToolkit;
     private observer: MutationObserver;
@@ -10,6 +14,9 @@ export class DeclarativePolyfill {
         this.observer = new MutationObserver(this.handleMutations.bind(this));
     }
 
+    /**
+     * Bootstraps the MutationObserver to live-bind any existing and future WebMCP declarative forms.
+     */
     start() {
         if (!this.needsPolyfill()) {
             this.toolkit['log']("Browser supports native Declarative WebMCP. Polyfill inactive.", "info");
@@ -32,6 +39,9 @@ export class DeclarativePolyfill {
         this.polyfillSubmitEvent();
     }
 
+    /**
+     * Halts the polyfill DOM mutation observer.
+     */
     stop() {
         this.observer.disconnect();
     }

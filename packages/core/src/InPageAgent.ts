@@ -1,6 +1,9 @@
 import { SemanticIndexer } from './SemanticIndexer.js';
 import { ILLMProvider } from './llm/ILLMProvider.js';
 
+/**
+ * Configuration options for the InPageAgent instance.
+ */
 export interface InPageAgentOptions {
     llmProvider: ILLMProvider; // The initialized language model session
     maxSteps?: number;
@@ -8,6 +11,10 @@ export interface InPageAgentOptions {
     requireConfirmationFor?: string[];
 }
 
+/**
+ * A native, embedded AI sub-agent which drives the current browser tab.
+ * Implements a ReAct loop over the `SemanticIndexer` to satisfy overarching `delegate_page_task` requests.
+ */
 export class InPageAgent {
     indexer: SemanticIndexer;
     session: ILLMProvider;
@@ -98,6 +105,10 @@ export class InPageAgent {
         return { prompt, tokens };
     }
 
+    /**
+     * Executes a single turn of the Observe-Think-Act loop.
+     * @returns True if the loop should continue, false if terminal bounds or 'done' command triggered.
+     */
     async step(): Promise<boolean> {
         let compressLevel = 0;
         let historyLimit = this.actionHistory.length || 1;
@@ -186,6 +197,11 @@ export class InPageAgent {
         }
     }
 
+    /**
+     * Bootstraps and locks the agent into solving a provided text task.
+     * 
+     * @param task Natural language instruction for the embedded agent to attempt to achieve.
+     */
     async run(task: string): Promise<{ status: string, summary?: string }> {
         this.task = task;
         if (!this.session) {

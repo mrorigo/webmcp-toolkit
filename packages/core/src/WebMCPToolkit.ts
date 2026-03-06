@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { InPageAgent } from "./InPageAgent.js";
 
+/**
+ * Defines a tool to be exposed to overarching WebMCP-compliant agents.
+ */
 export interface ToolRegistration<T extends z.ZodType> {
     name: string;
     description: string;
@@ -9,15 +12,28 @@ export interface ToolRegistration<T extends z.ZodType> {
     execute: (args: z.infer<T>, client: any) => Promise<any>;
 }
 
+/**
+ * Configuration options for the Universal Toolkit.
+ */
 export interface WebMCPToolkitOptions {
     logHandler?: (msg: string, level: string) => void;
 }
 
+/**
+ * The primary bridging layer integrating local TypeScript code 
+ * into the impending native browser `navigator.modelContext` API.
+ */
 export class WebMCPToolkit {
     private toolsRegistry = new Map<string, ToolRegistration<any>>();
     private logHandler: (msg: string, level: string) => void;
 
     public tools = {
+        /**
+         * Registers an explicit functional tool into the browser's modelContext.
+         * Automatically strictly-types parameters and maps Zod object to proper JSON schema.
+         * 
+         * @param tool The definition of your tool including its schema and executor.
+         */
         register: <T extends z.ZodType>(tool: ToolRegistration<T>) => {
             this.toolsRegistry.set(tool.name, tool);
 
@@ -26,6 +42,11 @@ export class WebMCPToolkit {
         }
     };
 
+    /**
+     * Initializes the bridging toolkit.
+     * 
+     * @param options Provides optional custom logging hooks.
+     */
     constructor(options?: WebMCPToolkitOptions) {
         this.logHandler = options?.logHandler || ((msg, lvl) => console.log(`[WebMCP ${lvl}] ${msg}`));
     }
@@ -72,6 +93,14 @@ export class WebMCPToolkit {
         }
     }
 
+    /**
+     * Pauses execution to manually prompt the local human user using the overarching client's 
+     * Human-In-The-Loop capabilities. 
+     * 
+     * @param client The opaque WebMCP client context that triggered the tool.
+     * @param message Text to display to the user explaining the requested action.
+     * @returns True if the user permitted the action.
+     */
     async askUserToConfirm(client: any, message: string): Promise<boolean> {
         if (!client || typeof client.requestUserInteraction !== 'function') {
             this.log("No valid WebMCP client provided for UI interaction. Falling back to native confirm.", "warning");
@@ -89,6 +118,14 @@ export class WebMCPToolkit {
         }
     }
 
+    /**
+     * Dispatches the `delegate_page_task` tool to the browser. 
+     * This exposes an incredibly powerful macro-tool where an external agent can 
+     * simply hand a text string (e.g., "Checkout my cart") to your completely embedded, 
+     * native autonomous `InPageAgent`.
+     * 
+     * @param config Configures the delegate agent limits and Human-In-The-Loop boundaries.
+     */
     enableUniversalDelegate(config: {
         agent: InPageAgent,
         allowedActions?: string[],

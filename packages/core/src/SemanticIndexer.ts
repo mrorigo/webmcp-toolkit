@@ -1,3 +1,8 @@
+/**
+ * Semantic DOM Indexer.
+ * Navigates the current DOM, identifying actionable elements, injecting tracking metadata (`data-agent-id`),
+ * and serializing the entire visual structure into a highly compressed semantic string format designed for Language Models.
+ */
 export class SemanticIndexer {
     nextAgentId: number = 1;
     actionableElements: Map<string, HTMLElement> = new Map();
@@ -105,6 +110,13 @@ export class SemanticIndexer {
         return `[ID: ${agentId}] ${props.join(', ')}`;
     }
 
+    /**
+     * Traverses the live document body and produces a massive, syntactically-dense 
+     * string representation of the current actionable landscape.
+     * 
+     * @param root The HTML element to start tracking from. Defaults to document.body.
+     * @param compressLevel (0-2) Drives increasingly aggressive semantic pruning to conserve LLM context tokens.
+     */
     serializeDOM(root: HTMLElement = document.body, compressLevel: number = 0): string {
         this.assignAgentIds(root);
 
