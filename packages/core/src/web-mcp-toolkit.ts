@@ -1,9 +1,14 @@
-import { z } from "zod";
 import type { InPageAgent } from "./in-page-agent.js";
 
 /**
- * Defines a tool to be exposed to overarching WebMCP-compliant agents.
+ * A minimal schema interface that mirrors the Zod contract we need at runtime.
+ * Callers may pass a Zod schema, or any object that implements `parse` and `_shape`.
  */
+export interface Schema<T> {
+    parse(data: unknown): T;
+    _shape?: Record<string, { isOptional(): boolean }>;
+}
+
 /**
  * Opaque WebMCP client reference natively passed into executing tools by the browser.
  */
@@ -12,12 +17,12 @@ export interface WebMCPClient {
     [key: string]: unknown;
 }
 
-export interface ToolRegistration<T extends z.ZodType> {
+export interface ToolRegistration<T> {
     name: string;
     description: string;
-    schema: T;
+    schema: Schema<T>;
     readOnly?: boolean;
-    execute: (args: z.infer<T>, client: WebMCPClient | undefined) => Promise<unknown>;
+    execute: (args: T, client: WebMCPClient | undefined) => Promise<unknown>;
 }
 
 /**
@@ -32,21 +37,21 @@ export interface WebMCPToolkitOptions {
  * into the impending native browser `navigator.modelContext` API.
  */
 export class WebMCPToolkit {
-    private toolsRegistry = new Map<string, ToolRegistration<z.ZodType>>();
+    private toolsRegistry = new Map<string, ToolRegistration<unknown>>();
     private logHandler: (msg: string, level: string) => void;
 
     public tools = {
         /**
          * Registers an explicit functional tool into the browser's modelContext.
-         * Automatically strictly-types parameters and maps Zod object to proper JSON schema.
+         * Automatically strictly-types parameters and maps a schema object to proper JSON schema.
          * 
          * @param tool The definition of your tool including its schema and executor.
          */
-        register: <T extends z.ZodType>(tool: ToolRegistration<T>) => {
-            this.toolsRegistry.set(tool.name, tool);
+        register: <T>(tool: ToolRegistration<T>) => {
+            this.toolsRegistry.set(tool.name, tool as ToolRegistration<unknown>);
 
             // Wait for WebMCP navigator.modelContext to be available
-            this.registerWithWebMCP(tool);
+            this.registerWithWebMCP(tool as ToolRegistration<unknown>);
         }
     };
 
@@ -66,20 +71,19 @@ export class WebMCPToolkit {
         this.logHandler(msg, level);
     }
 
-    private async registerWithWebMCP(tool: ToolRegistration<z.ZodType>) {
+    private async registerWithWebMCP(tool: ToolRegistration<unknown>) {
         if (globalThis.window?.navigator && (globalThis.window.navigator as unknown as { modelContext?: any }).modelContext) {
-            // Lightweight Zod to JSON Schema bridge
+            // Build JSON Schema from the tool schema's _shape if available (Zod-compatible duck typing)
             const jsonSchema = {
                 type: "object",
                 properties: {} as Record<string, unknown>,
                 required: [] as string[]
             };
 
-            // E.g. basic conversion for z.object()
-            if (tool.schema instanceof z.ZodObject) {
-                for (const [key, value] of Object.entries(tool.schema.shape)) {
-                    jsonSchema.properties[key] = { type: "string" }; // simplistic mapping for strings
-                    if (!(value as any).isOptional()) {
+            if (tool.schema._shape) {
+                for (const [key, value] of Object.entries(tool.schema._shape)) {
+                    jsonSchema.properties[key] = { type: "string" };
+                    if (!value.isOptional()) {
                         jsonSchema.required.push(key);
                     }
                 }
@@ -92,7 +96,6 @@ export class WebMCPToolkit {
                 readOnly: tool.readOnly ?? false,
                 execute: async (args: Record<string, unknown>, context: { client?: WebMCPClient }) => {
                     this.log(`Invoking tool ${tool.name}`, "info");
-                    // Validate
                     const parsedArgs = tool.schema.parse(args);
                     return await tool.execute(parsedArgs, context?.client ?? undefined);
                 }
@@ -141,20 +144,28 @@ export class WebMCPToolkit {
         allowedActions?: string[],
         requireConfirmationFor?: string[]
     }) {
-        const schema = z.object({
-            task: z.string().describe("The human-readable task description to execute on the page.")
-        });
+        // Inline schema: a plain object with a single required `task` string field.
+        // This avoids Zod as a runtime dependency while remaining compatible with Schema<T>.
+        const schema: Schema<{ task: string }> = {
+            parse: (data: unknown) => {
+                const record = data as Record<string, unknown>;
+                if (typeof record['task'] !== 'string') {
+                    throw new Error("Invalid args: 'task' must be a string.");
+                }
+                return { task: record['task'] };
+            },
+            _shape: {
+                task: { isOptional: () => false }
+            }
+        };
 
         this.tools.register({
             name: "delegate_page_task",
             description: "Spins up an embedded in-page ReAct sub-agent to autonomously drive the frontend UI to achieve a delegated task.",
-            schema: schema,
+            schema,
             readOnly: false,
             execute: async (args, client) => {
                 this.log(`Delegating task to InPageAgent: ${args.task}`, "info");
-
-                // Let the agent use the client for ask_user later
-                // We'll hardcode prompt confirmations for certain elements
 
                 config.agent.onAction = async (actionName: string, arg: Record<string, any>) => {
                     const targetId = arg['agent_id'] ?? arg['id'] ?? arg['element_id'];
