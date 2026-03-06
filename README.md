@@ -83,9 +83,9 @@ mcp.enableUniversalDelegate({
 
 ## Repository Structure
 - `packages/core/`: The fully typed TypeScript SDK containing the ReAct loops, WebMCP bridges, and DOM polyfills.
-- `playground2.html`: Phase 2 testing harness proving the `delegate_page_task` WebMCP integration and HITL logic.
-- `playground3.html`: Phase 3 test—native Declarative DOM polyfills bypassing agents completely.
-- `playground4.html`: Phase 4 test—BYOK OpenAIPovider powering the In-Page SDK loop.
+- `examples/delegate-agent.html`: Proves the `delegate_page_task` WebMCP integration and HITL logic using the local Chrome Prompt API.
+- `examples/declarative-forms.html`: End-to-end test of the native Declarative DOM polyfills bypassing agents completely.
+- `examples/byok-openai.html`: End-to-end test of the BYOK OpenAIPovider powering the In-Page SDK loop.
 
 ## Documentation
 See the [User Guide](docs/USER-GUIDE.md) for full installation instructions, API documentation, and explicit integration patterns.
