@@ -4,12 +4,20 @@ import { InPageAgent } from "./InPageAgent.js";
 /**
  * Defines a tool to be exposed to overarching WebMCP-compliant agents.
  */
+/**
+ * Opaque WebMCP client reference natively passed into executing tools by the browser.
+ */
+export interface WebMCPClient {
+    requestUserInteraction: (params: { message: string, type: string }) => Promise<boolean>;
+    [key: string]: unknown;
+}
+
 export interface ToolRegistration<T extends z.ZodType> {
     name: string;
     description: string;
     schema: T;
     readOnly?: boolean;
-    execute: (args: z.infer<T>, client: any) => Promise<any>;
+    execute: (args: z.infer<T>, client: WebMCPClient | null) => Promise<unknown>;
 }
 
 /**
@@ -24,7 +32,7 @@ export interface WebMCPToolkitOptions {
  * into the impending native browser `navigator.modelContext` API.
  */
 export class WebMCPToolkit {
-    private toolsRegistry = new Map<string, ToolRegistration<any>>();
+    private toolsRegistry = new Map<string, ToolRegistration<z.ZodType>>();
     private logHandler: (msg: string, level: string) => void;
 
     public tools = {
@@ -58,12 +66,12 @@ export class WebMCPToolkit {
         this.logHandler(msg, level);
     }
 
-    private async registerWithWebMCP(tool: ToolRegistration<any>) {
-        if (typeof window !== "undefined" && window.navigator && (window.navigator as any).modelContext) {
+    private async registerWithWebMCP(tool: ToolRegistration<z.ZodType>) {
+        if (typeof window !== "undefined" && window.navigator && (window.navigator as unknown as { modelContext?: any }).modelContext) {
             // Lightweight Zod to JSON Schema bridge
             const jsonSchema = {
                 type: "object",
-                properties: {} as any,
+                properties: {} as Record<string, unknown>,
                 required: [] as string[]
             };
 
@@ -78,12 +86,12 @@ export class WebMCPToolkit {
                 }
             }
 
-            (window.navigator as any).modelContext.registerTool({
+            (window.navigator as unknown as { modelContext: any }).modelContext.registerTool({
                 name: tool.name,
                 description: tool.description,
                 inputSchema: jsonSchema,
                 readOnly: tool.readOnly ?? false,
-                execute: async (args: any, context: any) => {
+                execute: async (args: Record<string, unknown>, context: { client?: WebMCPClient }) => {
                     this.log(`Invoking tool ${tool.name}`, "info");
                     // Validate
                     const parsedArgs = tool.schema.parse(args);
@@ -104,7 +112,7 @@ export class WebMCPToolkit {
      * @param message Text to display to the user explaining the requested action.
      * @returns True if the user permitted the action.
      */
-    async askUserToConfirm(client: any, message: string): Promise<boolean> {
+    async askUserToConfirm(client: WebMCPClient | null, message: string): Promise<boolean> {
         if (!client || typeof client.requestUserInteraction !== 'function') {
             this.log("No valid WebMCP client provided for UI interaction. Falling back to native confirm.", "warning");
             return window.confirm(message);
@@ -149,9 +157,10 @@ export class WebMCPToolkit {
                 // Let the agent use the client for ask_user later
                 // We'll hardcode prompt confirmations for certain elements
 
-                config.agent.onAction = async (actionName: string, arg: any) => {
-                    const targetId = arg.agent_id || arg.id || arg.element_id;
-                    const el = config.agent.indexer.actionableElements.get(targetId);
+                config.agent.onAction = async (actionName: string, arg: Record<string, any>) => {
+                    const targetId = arg['agent_id'] || arg['id'] || arg['element_id'];
+                    if (!targetId) return;
+                    const el = config.agent.indexer.actionableElements.get(String(targetId));
 
                     if (el && config.requireConfirmationFor) {
                         let requiresConfirm = false;
@@ -180,7 +189,7 @@ export class WebMCPToolkit {
                             this.log(`Agent action triggered Human-In-The-Loop hook for selector: ${matchedSelector}`, "action");
 
                             const label = config.agent.indexer.getElementLabel(el) || el.getAttribute("name") || el.getAttribute("placeholder") || el.id || "Unnamed element";
-                            const actionDesc = actionName.includes("input") ? `type "${arg.text || arg.value}" into` : `click on`;
+                            const actionDesc = actionName.includes("input") ? `type "${arg['text'] || arg['value']}" into` : `click on`;
 
                             const allowed = await this.askUserToConfirm(client, `The embedded agent wants to ${actionDesc} a critical element:\n<${el.tagName.toLowerCase()}> "${label}"\n\nAllow this action?`);
                             if (!allowed) {

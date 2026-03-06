@@ -25,7 +25,7 @@ export class InPageAgent {
     actionHistory: string[];
 
     // For hitl/UI events
-    onAction?: (actionName: string, args: any) => Promise<void> | void;
+    onAction?: (actionName: string, args: Record<string, any>) => Promise<void> | void;
     onLog?: (msg: string, type: string) => void;
 
     constructor(options: InPageAgentOptions) {
@@ -46,7 +46,7 @@ export class InPageAgent {
         }
     }
 
-    async executeAction(actionName: string, args: any): Promise<boolean> {
+    async executeAction(actionName: string, args: Record<string, any>): Promise<boolean> {
         this.log(`Executing: ${actionName} with args: ${JSON.stringify(args)}`, "action");
 
         if (this.onAction) {
@@ -54,14 +54,14 @@ export class InPageAgent {
         }
 
         if (actionName === 'done') {
-            this.log(`Task finished: ${args.reason || args.message || ''}`, "success");
+            this.log(`Task finished: ${args['reason'] || args['message'] || ''}`, "success");
             return false; // stop loop
         }
 
         this.hasTakenAction = true;
 
-        const agentId = args.agent_id || args.id || args.element_id;
-        const textToInput = args.text !== undefined ? args.text : args.value;
+        const agentId = args['agent_id'] || args['id'] || args['element_id'];
+        const textToInput = args['text'] !== undefined ? args['text'] : args['value'];
 
         const el = this.indexer.actionableElements.get(agentId);
         if (!el) {
@@ -191,8 +191,8 @@ export class InPageAgent {
             const shouldContinue = await this.executeAction(action.tool, action.arguments);
             return shouldContinue;
 
-        } catch (e: any) {
-            this.log(`LLM Error: ${e.message}`, "error");
+        } catch (e) {
+            this.log(`LLM Error: ${(e as Error).message || String(e)}`, "error");
             return false;
         }
     }

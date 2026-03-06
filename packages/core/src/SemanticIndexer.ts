@@ -51,8 +51,8 @@ export class SemanticIndexer {
     }
 
     getElementLabel(element: HTMLElement): string {
-        if (element.hasAttribute('aria-label')) return element.getAttribute('aria-label')!;
-        if (element.hasAttribute('title')) return element.getAttribute('title')!;
+        if (element.hasAttribute('aria-label')) return element.getAttribute('aria-label') || '';
+        if (element.hasAttribute('title')) return element.getAttribute('title') || '';
 
         if (element.id) {
             const label = document.querySelector(`label[for="${element.id}"]`) as HTMLElement;
@@ -64,8 +64,8 @@ export class SemanticIndexer {
             return element.innerText.trim();
         }
 
-        if (element.hasAttribute('placeholder')) return element.getAttribute('placeholder')!;
-        if (element.hasAttribute('name')) return element.getAttribute('name')!;
+        if (element.hasAttribute('placeholder')) return element.getAttribute('placeholder') || '';
+        if (element.hasAttribute('name')) return element.getAttribute('name') || '';
 
         return '';
     }
