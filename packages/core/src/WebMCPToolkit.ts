@@ -51,7 +51,10 @@ export class WebMCPToolkit {
         this.logHandler = options?.logHandler || ((msg, lvl) => console.log(`[WebMCP ${lvl}] ${msg}`));
     }
 
-    private log(msg: string, level: string = "info") {
+    /**
+     * Emits internal logs to the configured logHandler.
+     */
+    public log(msg: string, level: string = "info") {
         this.logHandler(msg, level);
     }
 

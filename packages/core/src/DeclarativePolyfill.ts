@@ -19,11 +19,11 @@ export class DeclarativePolyfill {
      */
     start() {
         if (!this.needsPolyfill()) {
-            this.toolkit['log']("Browser supports native Declarative WebMCP. Polyfill inactive.", "info");
+            this.toolkit.log("Browser supports native Declarative WebMCP. Polyfill inactive.", "info");
             return;
         }
 
-        this.toolkit['log']("Starting Declarative WebMCP Polyfill Observer...", "info");
+        this.toolkit.log("Starting Declarative WebMCP Polyfill Observer...", "info");
 
         // Scan existing DOM
         document.querySelectorAll('form[toolname]').forEach(f => this.processForm(f as HTMLFormElement));
@@ -140,7 +140,7 @@ export class DeclarativePolyfill {
                 description: description,
                 inputSchema: inputSchema,
                 execute: async (args: any) => {
-                    this.toolkit['log'](`Declarative Polyfill invoked for form: ${toolName}`, "info");
+                    this.toolkit.log(`Declarative Polyfill invoked for form: ${toolName}`, "info");
 
                     // 1. Fill out the form fields with the agent's provided args
                     for (const [key, val] of Object.entries(args)) {
@@ -178,7 +178,7 @@ export class DeclarativePolyfill {
                     // 4. Fallback if not prevented (not handled perfectly in polyfill without true nav interception)
                     if (!submitEvent.defaultPrevented) {
                         if (form.hasAttribute('toolautosubmit')) {
-                            this.toolkit['log']("Form natively submitting due to toolautosubmit...", "warning");
+                            this.toolkit.log("Form natively submitting due to toolautosubmit...", "warning");
                             form.submit();
                             return { status: "submitted" };
                         } else {
@@ -189,7 +189,7 @@ export class DeclarativePolyfill {
                     return { status: "success" };
                 }
             });
-            this.toolkit['log'](`Polyfill registered declarative form '${toolName}' as WebMCP tool`, "success");
+            this.toolkit.log(`Polyfill registered declarative form '${toolName}' as WebMCP tool`, "success");
         }
     }
 
