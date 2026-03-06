@@ -31,7 +31,7 @@ export class InPageAgent {
     constructor(options: InPageAgentOptions) {
         this.indexer = new SemanticIndexer();
         this.session = options.llmProvider;
-        this.maxSteps = options.maxSteps || 10;
+        this.maxSteps = options.maxSteps ?? 10;
         this.isRunning = false;
         this.task = "";
         this.hasTakenAction = false;
@@ -111,7 +111,7 @@ export class InPageAgent {
      */
     async step(): Promise<boolean> {
         let compressLevel = 0;
-        let historyLimit = this.actionHistory.length || 1;
+        let historyLimit = this.actionHistory.length || 1; // if 0, we still want 1 for serialization logic
         let { prompt, tokens } = await this.countAndBuildPrompt(compressLevel, historyLimit);
 
         // Utilize the provider's native contextWindow if available, reserving a 10% safety margin for the assistant response and internal system prompts.
@@ -158,13 +158,13 @@ export class InPageAgent {
             // Try to parse JSON output
             let cleanJson = responseText.trim();
             if (cleanJson.startsWith('```json')) {
-                cleanJson = cleanJson.substring(7);
+                cleanJson = cleanJson.slice(7);
             } else if (cleanJson.startsWith('```')) {
-                cleanJson = cleanJson.substring(3);
+                cleanJson = cleanJson.slice(3);
             }
 
             if (cleanJson.endsWith('```')) {
-                cleanJson = cleanJson.substring(0, cleanJson.length - 3);
+                cleanJson = cleanJson.slice(0, -3);
             }
             cleanJson = cleanJson.trim();
 

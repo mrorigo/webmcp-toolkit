@@ -11,7 +11,7 @@ export class DeclarativePolyfill {
 
     constructor(toolkit: WebMCPToolkit) {
         this.toolkit = toolkit;
-        this.observer = new MutationObserver(this.handleMutations.bind(this));
+        this.observer = new MutationObserver((m) => this.handleMutations(m));
     }
 
     /**
@@ -26,7 +26,9 @@ export class DeclarativePolyfill {
         this.toolkit.log("Starting Declarative WebMCP Polyfill Observer...", "info");
 
         // Scan existing DOM
-        document.querySelectorAll('form[toolname]').forEach(f => this.processForm(f as HTMLFormElement));
+        for (const f of document.querySelectorAll('form[toolname]')) {
+            this.processForm(f as HTMLFormElement);
+        }
 
         // Start observing for new forms
         this.observer.observe(document.body, {
@@ -91,10 +93,10 @@ export class DeclarativePolyfill {
             required: []
         };
 
-        const inputs = form.querySelectorAll('input[name], select[name], textarea[name]');
-        inputs.forEach(el => {
+        const inputElements = form.querySelectorAll('input[name], select[name], textarea[name]');
+        for (const el of inputElements) {
             const name = el.getAttribute('name');
-            if (!name) return;
+            if (!name) continue;
 
             const desc = el.getAttribute('toolparamdescription') || '';
             const isRequired = el.hasAttribute('required');
@@ -117,7 +119,7 @@ export class DeclarativePolyfill {
                 }
             } else if (el.tagName === 'SELECT') {
                 propertyDef.type = "string";
-                const options = Array.from((el as HTMLSelectElement).options);
+                const options = [...(el as HTMLSelectElement).options];
                 if (options.length > 0) {
                     propertyDef.enum = options.map(o => o.value || o.text);
                 }
@@ -132,7 +134,7 @@ export class DeclarativePolyfill {
             if (isRequired) {
                 inputSchema.required.push(name);
             }
-        });
+        }
 
         if (globalThis.window?.navigator && (globalThis.window.navigator as any).modelContext) {
             (globalThis.window.navigator as any).modelContext.registerTool({
@@ -196,16 +198,18 @@ export class DeclarativePolyfill {
     private handleMutations(mutations: MutationRecord[]) {
         for (const mutation of mutations) {
             if (mutation.type === 'childList') {
-                mutation.addedNodes.forEach(node => {
+                for (const node of mutation.addedNodes) {
                     if (node.nodeType === Node.ELEMENT_NODE) {
                         const el = node as HTMLElement;
                         if (el.tagName === 'FORM' && el.hasAttribute('toolname')) {
                             this.processForm(el as HTMLFormElement);
                         } else {
-                            el.querySelectorAll('form[toolname]').forEach(f => this.processForm(f as HTMLFormElement));
+                            for (const f of el.querySelectorAll('form[toolname]')) {
+                                this.processForm(f as HTMLFormElement);
+                            }
                         }
                     }
-                });
+                }
             } else if (mutation.type === 'attributes') {
                 const el = mutation.target as HTMLElement;
                 if (el.tagName === 'FORM' && el.hasAttribute('toolname')) {

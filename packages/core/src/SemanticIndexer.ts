@@ -9,17 +9,12 @@ export class SemanticIndexer {
 
     isActionable(element: HTMLElement): boolean {
         if (element.hasAttribute('toolname')) return true;
+        if (element.matches('input[type="hidden"]')) return false;
+        if (element.matches('input, button, select, textarea, a')) return true;
 
-        const tagName = element.tagName.toLowerCase();
-        if (['input', 'button', 'select', 'textarea', 'a'].includes(tagName)) {
-            if ((element as HTMLInputElement).type === 'hidden') return false;
-            return true;
-        }
+        if (element.matches('[role="button"], [role="link"], [role="textbox"]')) return true;
 
-        const role = element.getAttribute('role');
-        if (role === 'button' || role === 'link' || role === 'textbox') return true;
-
-        if (element.hasAttribute('tabindex') && element.getAttribute('tabindex') !== '-1') return true;
+        if (element.matches('[tabindex]:not([tabindex="-1"])')) return true;
 
         return false;
     }

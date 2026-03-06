@@ -56,7 +56,7 @@ export class WebMCPToolkit {
      * @param options Provides optional custom logging hooks.
      */
     constructor(options?: WebMCPToolkitOptions) {
-        this.logHandler = options?.logHandler || ((msg, lvl) => console.log(`[WebMCP ${lvl}] ${msg}`));
+        this.logHandler = options?.logHandler ?? ((msg, lvl) => console.log(`[WebMCP ${lvl}] ${msg}`));
     }
 
     /**
@@ -77,10 +77,9 @@ export class WebMCPToolkit {
 
             // E.g. basic conversion for z.object()
             if (tool.schema instanceof z.ZodObject) {
-                const shape = tool.schema.shape;
-                for (const key in shape) {
+                for (const [key, value] of Object.entries(tool.schema.shape)) {
                     jsonSchema.properties[key] = { type: "string" }; // simplistic mapping for strings
-                    if (!shape[key].isOptional()) {
+                    if (!(value as any).isOptional()) {
                         jsonSchema.required.push(key);
                     }
                 }

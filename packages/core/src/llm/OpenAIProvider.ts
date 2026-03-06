@@ -14,8 +14,8 @@ export class OpenAIProvider implements ILLMProvider {
 
     constructor(options: OpenAIOptions, messages?: { role: string; content: string }[]) {
         this.apiKey = options.apiKey;
-        this.model = options.model || "gpt-4o-mini";
-        this.systemPrompt = options.systemPrompt || "You are a helpful UI automation agent.";
+        this.model = options.model ?? "gpt-4o-mini";
+        this.systemPrompt = options.systemPrompt ?? "You are a helpful UI automation agent.";
 
         if (messages) {
             this.messages = messages;
@@ -91,7 +91,7 @@ export class OpenAIProvider implements ILLMProvider {
         // Return a fresh provider with a copied message array
         return new OpenAIProvider(
             { apiKey: this.apiKey, model: this.model, systemPrompt: this.systemPrompt },
-            JSON.parse(JSON.stringify(this.messages))
+            structuredClone(this.messages)
         );
     }
 
