@@ -118,12 +118,12 @@ A major breakthrough here is leveraging the new Chrome Prompt API (via `ai.langu
 ```typescript
 import { WebMCPToolkit, InPageAgent } from "universal-webmcp-agent";
 
-// Tip: @types/dom-chromium-ai provides typings for `window.ai`
+// Tip: @types/dom-chromium-ai provides typings for the Chrome Prompt API.
 
 const mcp = new WebMCPToolkit();
 
 // Initialize the local Prompt API session (if available)
-const session = window.ai?.languageModel ? await window.ai.languageModel.create({
+const session = (globalThis.ai?.languageModel) ? await globalThis.ai.languageModel.create({
   // Built-in browser LLM session configuration
   systemPrompt: "You are an embedded UI agent."
 }) : null;
