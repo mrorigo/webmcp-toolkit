@@ -76,13 +76,15 @@ export class InPageAgent {
             (el as HTMLInputElement).value = textToInput ?? '';
             el.dispatchEvent(new Event('input', { bubbles: true }));
             el.dispatchEvent(new Event('change', { bubbles: true }));
-            this.log(`Typed text into [ID: ${agentId}]`, "success");
-            this.actionHistory.push(`typed "${textToInput}" into [ID: ${agentId}]`);
+            const label = this.indexer.getElementLabel(el) || el.tagName.toLowerCase();
+            this.log(`Typed text into [${label}: ID ${agentId}]`, "success");
+            this.actionHistory.push(`typed "${textToInput}" into [${label}: ID ${agentId}]`);
         } else if (actionName === 'click_element' || actionName === 'click') {
             el.focus();
             el.click();
-            this.log(`Clicked element [ID: ${agentId}]`, "success");
-            this.actionHistory.push(`clicked element [ID: ${agentId}]`);
+            const label = this.indexer.getElementLabel(el) || el.tagName.toLowerCase();
+            this.log(`Clicked element [${label}: ID ${agentId}]`, "success");
+            this.actionHistory.push(`clicked element [${label}: ID ${agentId}]`);
         } else {
             this.log(`Error: Unknown action ${actionName}`, "error");
             this.actionHistory.push(`attempted unknown action ${actionName}`);
@@ -102,9 +104,9 @@ export class InPageAgent {
             historyStr = trimmedHistory.map((action, index) => `${index + 1}. ${action}`).join('\n');
         }
 
-        const prompt = `Current Goal: ${this.task}\n\nPast Actions Taken In Order:\n${historyStr}\n\n${domState}\n\nBased on your past actions and the current state, what is the exact next logical action? Output ONLY a JSON object with 'tool' and 'arguments' properties. No markdown formatting.`;
-        const tokens = await this.session.countPromptTokens(prompt);
-        return { prompt, tokens };
+        const userPrompt = `Current Goal: ${this.task}\n\nPast Actions Taken In Order:\n${historyStr}\n\n${domState}\n\nBased on your past actions and the current state, what is the exact next logical action? Output ONLY a JSON object with 'tool' and 'arguments' properties. No markdown formatting.`;
+        const tokens = await this.session.countPromptTokens(userPrompt);
+        return { prompt: userPrompt, tokens };
     }
 
     /**

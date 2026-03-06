@@ -49,12 +49,12 @@ export class SemanticIndexer {
 
         if (element.id) {
             const label = document.querySelector(`label[for="${element.id}"]`) as HTMLElement ?? undefined;
-            if (label) { return label.innerText.trim(); }
+            if (label) { return label.textContent?.trim() ?? ''; }
         }
 
         const tagName = element.tagName.toLowerCase();
         if (['button', 'a'].includes(tagName)) {
-            return element.innerText.trim();
+            return element.textContent?.trim() ?? '';
         }
 
         if (element.hasAttribute('placeholder')) { return element.getAttribute('placeholder') ?? ''; }

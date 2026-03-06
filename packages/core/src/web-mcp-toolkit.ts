@@ -22,7 +22,7 @@ export interface ToolRegistration<T> {
     description: string;
     schema: Schema<T>;
     readOnly?: boolean;
-    execute: (args: T, client: WebMCPClient | undefined) => Promise<unknown>;
+    execute: (args: T, client: WebMCPClient | undefined | null) => Promise<unknown>;
 }
 
 /**
@@ -97,7 +97,7 @@ export class WebMCPToolkit {
                 execute: async (args: Record<string, unknown>, context: { client?: WebMCPClient }) => {
                     this.log(`Invoking tool ${tool.name}`, "info");
                     const parsedArgs = tool.schema.parse(args);
-                    return await tool.execute(parsedArgs, context?.client ?? undefined);
+                    return await tool.execute(parsedArgs, context?.client);
                 }
             });
             this.log(`Successfully registered tool ${tool.name} with modelContext`, "success");
@@ -114,7 +114,7 @@ export class WebMCPToolkit {
      * @param message Text to display to the user explaining the requested action.
      * @returns True if the user permitted the action.
      */
-    async askUserToConfirm(client: WebMCPClient | undefined, message: string): Promise<boolean> {
+    async askUserToConfirm(client: WebMCPClient | undefined | null, message: string): Promise<boolean> {
         if (!client?.requestUserInteraction) {
             this.log("No valid WebMCP client provided for UI interaction. Falling back to native confirm.", "warning");
             return globalThis.window.confirm(message);
@@ -201,7 +201,7 @@ export class WebMCPToolkit {
                             const label = config.agent.indexer.getElementLabel(el) ?? el.getAttribute("name") ?? el.getAttribute("placeholder") ?? el.id ?? "Unnamed element";
                             const actionDesc = actionName.includes("input") ? `type "${arg['text'] ?? arg['value']}" into` : `click on`;
 
-                            const allowed = await this.askUserToConfirm(client ?? undefined, `The embedded agent wants to ${actionDesc} a critical element:\n<${el.tagName.toLowerCase()}> "${label}"\n\nAllow this action?`);
+                            const allowed = await this.askUserToConfirm(client, `The embedded agent wants to ${actionDesc} a critical element:\n<${el.tagName.toLowerCase()}> "${label}"\n\nAllow this action?`);
                             if (!allowed) {
                                 throw new Error("Action denied by user.");
                             }

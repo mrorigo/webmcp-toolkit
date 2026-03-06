@@ -55,18 +55,19 @@ export class DeclarativePolyfill {
     }
 
     private polyfillSubmitEvent() {
-        // We override the global window.SubmitEvent to add agentInvoked and respondWith
-        if (globalThis.SubmitEvent) {
-            const originalSubmitEvent = globalThis.SubmitEvent as any;
+        const _window = (globalThis.window as any) || globalThis;
+        const Proto = _window.SubmitEvent?.prototype || Event.prototype;
 
-            // Allow modifying the event objects
-            Object.defineProperty(originalSubmitEvent.prototype, 'agentInvoked', {
+        if (!Object.getOwnPropertyDescriptor(Proto, 'agentInvoked')) {
+            Object.defineProperty(Proto, 'agentInvoked', {
                 get() { return this._agentInvoked ?? false; },
                 set(v) { this._agentInvoked = v; },
                 configurable: true
             });
+        }
 
-            Object.defineProperty(originalSubmitEvent.prototype, 'respondWith', {
+        if (!Object.getOwnPropertyDescriptor(Proto, 'respondWith')) {
+            Object.defineProperty(Proto, 'respondWith', {
                 value: function (promise: Promise<any>) {
                     this._agentResponsePromise = promise;
                 },
@@ -141,7 +142,7 @@ export class DeclarativePolyfill {
                 name: toolName,
                 description: description,
                 inputSchema: inputSchema,
-                execute: async (args: any) => {
+                execute: async (args: Record<string, unknown>) => {
                     this.toolkit.log(`Declarative Polyfill invoked for form: ${toolName}`, "info");
 
                     // 1. Fill out the form fields with the agent's provided args
@@ -169,6 +170,13 @@ export class DeclarativePolyfill {
                     // Attach polyfill properties
                     (submitEvent as any)._agentInvoked = true;
                     (submitEvent as any).agentInvoked = true;
+
+                    // Ensure respondWith is definitely there for the implementation to use
+                    if (!(submitEvent as any).respondWith) {
+                        (submitEvent as any).respondWith = (promise: Promise<any>) => {
+                            (submitEvent as any)._agentResponsePromise = promise;
+                        };
+                    }
 
                     form.dispatchEvent(submitEvent);
 
