@@ -113,7 +113,9 @@ document.getElementById('my-form').addEventListener('submit', async (e) => {
 
 ---
 
-## Level 3: The Universal Delegate (Gold)
+## Level 3: The Universal Delegate (Gold) `[EXPERIMENTAL]`
+
+> **⚠️ Experimental.** The In-Page Agent's ReAct loop is under active development. DOM coverage, token budgeting, and multi-step reliability are not yet production-hardened. Treat this as a powerful prototype, not a production API.
 
 For complex multi-step workflows, enable the **Universal Delegate**. This registers a single powerful tool: `delegate_page_task({ task: string })`. When a top-level browser agent invokes it, the embedded **In-Page Agent** takes over and runs a full ReAct loop inside the tab.
 

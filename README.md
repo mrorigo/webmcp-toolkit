@@ -44,7 +44,9 @@ The WebMCP specification lets standard HTML `<form>` elements be exposed as AI t
 
 > Load `dist/declarative.js` (7 kb) instead of the full `dist/browser.js` (15 kb) for pages that only use the Declarative Polyfill path.
 
-### 3. The Universal Delegate / In-Page Agent (Gold Level)
+### 3. The Universal Delegate / In-Page Agent (Gold Level) `[EXPERIMENTAL]`
+
+> **⚠️ Experimental.** The In-Page Agent's ReAct loop is under active development. DOM coverage, token budgeting, and multi-step reliability are not yet production-hardened.
 For complex multi-step workflows, enable the **Universal Delegate**, which registers a single powerful WebMCP tool: `delegate_page_task`. A top-level browser agent calls this tool, and the embedded **In-Page Agent** takes over, running a full ReAct loop (Observe → Think → Act) directly inside the tab.
 
 Powered by the **Chrome Prompt API** (`globalThis.LanguageModel`) or a **Bring-Your-Own-Key OpenAI Provider**, the agent parses a semantically labeled DOM, plans its next actions, and dispatches real browser events — while prompting the user (Human-In-The-Loop) before critical actions.
