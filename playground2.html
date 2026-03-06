@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal WebMCP Agent - Phase 2</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #333;
+        }
+
+        form {
+            border: 1px solid #ddd;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"] {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        #webmcp-mock {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            height: 350px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        #agentUI {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        #taskInput {
+            width: 70%;
+            padding: 0.8rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .log-error {
+            color: #f87171;
+        }
+
+        .log-success {
+            color: #4ade80;
+        }
+
+        .log-action {
+            color: #60a5fa;
+        }
+
+        .log-warning {
+            color: #facc15;
+        }
+
+        .log-info {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Universal Delegate Bridge Testing (Phase 2)</h1>
+    <p>Testing the <code>WebMCPToolkit</code> binding natively with the emerging browser API context.</p>
+
+    <!-- Agent Control UI -->
+    <div id="agentUI">
+        <h2>🌐 Mock WebMCP Top-Level Invocation</h2>
+        <div style="display: flex;">
+            <input type="text" id="taskInput" placeholder="e.g. Fill the form with name 'Test User'">
+            <button id="runAgentBtn">Send to Top-Level WebMCP</button>
+        </div>
+        <div id="webmcp-mock">Initializing WebMCP Environment Mock...</div>
+    </div>
+
+    <!-- Declarative form exposing the WebMCP Tool -->
+    <form id="checkoutForm" toolname="checkout_cart" tooldescription="Submit the shopping cart to complete the purchase"
+        toolautosubmit>
+        <h2>Shipping & Payment Details</h2>
+        <div class="form-group">
+            <label for="fullName">Full Name</label>
+            <input type="text" id="fullName" name="fullName" required
+                toolparamdescription="The full name of the customer for shipping" placeholder="e.g. Jane Doe">
+        </div>
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" required
+                toolparamdescription="Email address for order confirmation" placeholder="jane@example.com">
+        </div>
+        <button type="submit" id="submitBtn">Complete Purchase</button>
+    </form>
+
+    <script src="packages/core/dist/browser.js"></script>
+    <script>
+        const logBox = document.getElementById('webmcp-mock');
+        function mlog(msg, type = "info") {
+            const el = document.createElement('div');
+            el.className = `log-${type}`;
+            el.innerText = `[Mock-WebMCP] ${msg}`;
+            logBox.appendChild(el);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // --- MOCK WEBMCP ENVIRONMENT ---
+        // Simulating a browser that implements the impending WebMCP standard natively.
+        window.registeredToolsMap = new Map();
+
+        // Expose to window.navigator per the WebMCP standard spec
+        Object.defineProperty(navigator, 'modelContext', {
+            value: {
+                registerTool: (toolDef) => {
+                    mlog(`Registering explicitly exported tool onto browser context: "${toolDef.name}"`, "action");
+                    window.registeredToolsMap.set(toolDef.name, toolDef);
+                }
+            },
+            configurable: true
+        });
+
+        const mockClient = {
+            requestUserInteraction: async (params) => {
+                mlog(`\n--- HUMAN IN THE LOOP TRIGGER ---`, "warning");
+                mlog(`Agent requests: "${params.message}"`, "warning");
+                // Wait briefly then show browser native prompt for PoC
+                await new Promise(r => setTimeout(r, 500));
+
+                const approved = window.confirm(`[WebMCP HITL Request]\n\n${params.message}`);
+                mlog(`User response: ${approved ? 'APPROVED' : 'DENIED'}`, approved ? "success" : "error");
+                return approved;
+            }
+        };
+
+        // --- INTEGRATE THE TOOLKIT (as a site developer would) ---
+        async function setupToolkit() {
+            mlog("Setting up the WebMCPToolkit SDK...");
+            const { WebMCPToolkit, InPageAgent } = window.UniversalWebMCPAgent;
+
+            // Custom logger to route toolkit internal logs to our UI
+            const mcp = new WebMCPToolkit({
+                logHandler: (msg, level) => mlog(`[SDK Logger] ${msg}`, level)
+            });
+
+            // Initialize prompt api session if available
+            let languageModelProvider = null;
+            if (window.LanguageModel && window.LanguageModel.create) {
+                languageModelProvider = await window.LanguageModel.create({
+                    systemPrompt: "You are a web automation agent. Your goal is to help the user complete tasks on a web page.\nYou receive a serialized DOM state. You must pick ONE tool to execute per turn.\nReturn ONLY valid JSON.\nTools:\n- input_text: Type text into an input field. Arguments: {\"agent_id\": string, \"text\": string}\n- click_element: Click a button or link. Arguments: {\"agent_id\": string}\n- done: The task is complete. Arguments: {\"reason\": string}\n\nAlways verify the DOM state. Do not invent element IDs."
+                });
+                mlog("Prompt API attached.", "success");
+            } else {
+                mlog("Prompt API missing! (Use Chrome Canary)", "error");
+            }
+
+            // Bind the Universal Delegate using our typed SDK
+            mcp.enableUniversalDelegate({
+                agent: new InPageAgent({
+                    llmProvider: languageModelProvider,
+                    maxSteps: 10
+                }),
+                // The HITL binding ensures critical UI touches demand permission
+                requireConfirmationFor: ["form[toolname='checkout_cart']"]
+            });
+            mlog("Toolkit setup complete.", "success");
+        }
+
+        setupToolkit();
+
+        // --- END TO END TEST TRIGGER ---
+        document.getElementById('runAgentBtn').addEventListener('click', async () => {
+            const task = document.getElementById('taskInput').value;
+            if (!task) return alert("Enter a task.");
+
+            // Get the registered bridge tool
+            const delegateTool = window.registeredToolsMap.get("delegate_page_task");
+
+            if (!delegateTool) {
+                return alert("delegate_page_task is not registered in the navigator mock!");
+            }
+
+            document.getElementById('runAgentBtn').disabled = true;
+            mlog(`\n--- TOP-LEVEL INVOCATION ---`, "info");
+            mlog(`An external generic AI is calling: delegate_page_task({"task": "${task}"})`, "info");
+
+            try {
+                // The external generic agent executes the tool, passing the client reference 
+                // implicitly provided by the WebMCP browser context so the local toolkit has standard hitl rights
+                const result = await delegateTool.execute({ task: task }, { client: mockClient });
+                mlog(`Invocation Returned: ${JSON.stringify(result, null, 2)}`, "success");
+            } catch (e) {
+                mlog(`Invocation failed: ${e.message}`, "error");
+            }
+
+            document.getElementById('runAgentBtn').disabled = false;
+        });
+
+        document.getElementById('checkoutForm').addEventListener('submit', e => { e.preventDefault(); alert("Form submitted natively."); })
+    </script>
+</body>
+
+</html>

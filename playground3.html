@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal WebMCP Agent - Phase 3</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #333;
+        }
+
+        form {
+            border: 1px solid #ddd;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        #webmcp-mock {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            height: 350px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        #agentUI {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .log-error {
+            color: #f87171;
+        }
+
+        .log-success {
+            color: #4ade80;
+        }
+
+        .log-action {
+            color: #60a5fa;
+        }
+
+        .log-warning {
+            color: #facc15;
+        }
+
+        .log-info {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Declarative Polyfills Testing (Phase 3)</h1>
+    <p>Testing the <code>DeclarativePolyfill</code> which dynamically bridges semantic
+        <code>&lt;form toolname="..."&gt;</code> HTML markup into WebMCP tools, bypassing the need for any internal AI
+        sub-agents entirely.</p>
+
+    <!-- Agent Control UI -->
+    <div id="agentUI">
+        <h2>🌐 Top-Level WebMCP Client</h2>
+        <div style="display: flex;">
+            <button id="runSearchFlightBtn">Call: "search_flight" directly</button>
+            <button id="runExplicitToolBtn" style="margin-left: 10px; background: #64748b;">Call explicit tool</button>
+        </div>
+        <div id="webmcp-mock">Browser mock ready...</div>
+    </div>
+
+    <!-- Declarative form exposing the WebMCP Tool directly -->
+    <form id="flightForm" toolname="search_flight" tooldescription="Searches the internal system for available flights">
+        <h2>Book a Flight</h2>
+        <div class="form-group">
+            <label for="destination">Destination</label>
+            <input type="text" id="destination" name="destination" required
+                toolparamdescription="The city or airport code">
+        </div>
+        <div class="form-group">
+            <label for="passengers">Passengers</label>
+            <input type="text" id="passengers" name="passengers" required>
+        </div>
+        <button type="submit" id="submitBtn">Search Flights</button>
+    </form>
+
+    <script src="packages/core/dist/browser.js"></script>
+    <script>
+        const logBox = document.getElementById('webmcp-mock');
+        function mlog(msg, type = "info") {
+            const el = document.createElement('div');
+            el.className = `log-${type}`;
+            el.innerText = `[WebMCP] ${msg}`;
+            logBox.appendChild(el);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // --- MOCK WEBMCP BROWSER CONTEXT ---
+        window.registeredToolsMap = new Map();
+        Object.defineProperty(navigator, 'modelContext', {
+            value: {
+                registerTool: (toolDef) => {
+                    mlog(`RegisterTool intercepted in browser: "${toolDef.name}"`, "action");
+                    window.registeredToolsMap.set(toolDef.name, toolDef);
+                }
+            },
+            configurable: true
+        });
+
+        const mockClient = {
+            requestUserInteraction: async (params) => {
+                mlog(`\n--- HUMAN IN THE LOOP TRIGGER ---`, "warning");
+                return window.confirm(`[WebMCP HITL Request]\n\n${params.message}`);
+            }
+        };
+
+        // --- INTEGRATE THE TOOLKIT ---
+        mlog("Setting up the WebMCP SDK + Polyfill...");
+        const { WebMCPToolkit, DeclarativePolyfill } = window.UniversalWebMCPAgent;
+
+        const mcp = new WebMCPToolkit({ logHandler: (msg, level) => mlog(`[SDK Logger] ${msg}`, level) });
+
+        // Phase 3.3 Explicit API Bridge Setup
+        mcp.tools.register({
+            name: "get_weather",
+            description: "An explicit tool. Resolves temperature for a city.",
+            schema: { // Faking Zod for the simple standalone HTML
+                parse: (args) => args
+            },
+            execute: async ({ city }, client) => {
+                return { weather: "Sunny", degrees: 24, city };
+            }
+        });
+
+        // Phase 3.1 & 3.2: Start the declarative DOM Polyfill
+        const polyfill = new DeclarativePolyfill(mcp);
+        polyfill.start();
+
+        // Phase 3.2: 1st party javascript handling the Agent Submission
+        document.getElementById('flightForm').addEventListener('submit', async (e) => {
+            if (e.agentInvoked) {
+                mlog(`Form 'submit' event intercepted! It has the .agentInvoked polyfill flag.`, "warning");
+                e.preventDefault();
+
+                // Using the e.respondWith() WebMCP proposal polyfill to block navigation and return JSON to the agent
+                const formData = new FormData(e.target);
+
+                mlog(`1st-party code resolving agent transaction locally...`, "info");
+
+                e.respondWith(new Promise(resolve => {
+                    setTimeout(() => {
+                        resolve({
+                            status: "flights_found",
+                            results: [
+                                { flight: "AA123", price: `$${Math.floor(Math.random() * 500) + 100}`, dest: formData.get('destination') }
+                            ]
+                        });
+                    }, 500);
+                }));
+            } else {
+                e.preventDefault();
+                alert("Native human form submission!");
+            }
+        });
+
+
+        // --- E2E MOCK TRIGGERS ---
+        document.getElementById('runSearchFlightBtn').addEventListener('click', async () => {
+            const tool = window.registeredToolsMap.get("search_flight");
+            mlog(`\nTop-Level Agent Invoking Form Declarative Tool: "search_flight" with arbitrary JSON`, "action");
+            const res = await tool.execute({ destination: "JFK", passengers: "2" });
+            mlog(`WebMCP Response received internally without page reload: ${JSON.stringify(res)}`, "success");
+        });
+
+        document.getElementById('runExplicitToolBtn').addEventListener('click', async () => {
+            const tool = window.registeredToolsMap.get("get_weather");
+            mlog(`\nTop-Level Agent Invoking Explicit Tool: "get_weather"`, "action");
+            const res = await tool.execute({ city: "Stockholm" });
+            mlog(`WebMCP Response: ${JSON.stringify(res)}`, "success");
+        });
+    </script>
+</body>
+
+</html>
