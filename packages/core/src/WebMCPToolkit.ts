@@ -36,7 +36,7 @@ export class WebMCPToolkit {
 
     private async registerWithWebMCP(tool: ToolRegistration<any>) {
         if (typeof window !== "undefined" && window.navigator && (window.navigator as any).modelContext) {
-            // Very naive Zod to JSON Schema bridge for the PoC
+            // Lightweight Zod to JSON Schema bridge
             const jsonSchema = {
                 type: "object",
                 properties: {} as any,
@@ -47,7 +47,7 @@ export class WebMCPToolkit {
             if (tool.schema instanceof z.ZodObject) {
                 const shape = tool.schema.shape;
                 for (const key in shape) {
-                    jsonSchema.properties[key] = { type: "string" }; // simplistic mapping for PoC
+                    jsonSchema.properties[key] = { type: "string" }; // simplistic mapping for strings
                     if (!shape[key].isOptional()) {
                         jsonSchema.required.push(key);
                     }
@@ -106,7 +106,7 @@ export class WebMCPToolkit {
             execute: async (args, client) => {
                 this.log(`Delegating task to InPageAgent: ${args.task}`, "info");
 
-                // Let the agent use the client for ask_user later (Phase 2.3)
+                // Let the agent use the client for ask_user later
                 // We'll hardcode prompt confirmations for certain elements
 
                 config.agent.onAction = async (actionName: string, arg: any) => {

@@ -72,10 +72,6 @@ export class OpenAIProvider implements ILLMProvider {
         const data = await response.json();
         const output = data.choices[0].message.content;
 
-        // In a non-cloned path, we would append the assistant msg, but the agent loop explicitly commits state!
-        // To be safe and let clone/commit work properly, we just mutate OUR messages if prompt succeeds.
-        // Actually, the original agent uses `session.clone()` and only overwrites the master session if successful.
-        // So this object will mutate itself.
         this.messages.push({ role: "user", content: userPrompt });
         this.messages.push({ role: "assistant", content: output });
 
