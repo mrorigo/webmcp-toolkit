@@ -1,4 +1,4 @@
-export { WebMCPToolkit, ToolRegistration } from './web-mcp-toolkit.js';
+export { WebMCPToolkit, ToolRegistration } from './webmcp-toolkit.js';
 export * from './in-page-agent.js';
 export * from './semantic-indexer.js';
 export * from './declarative-polyfill.js';

@@ -1,6 +1,6 @@
 # Integrating with Deep Chat
 
-[Deep Chat](https://github.com/OvidijusParsiunas/deep-chat) is a fully customizable AI chat component. This guide explores how to bridge Deep Chat with the `web-mcp-toolkit` to create a beautiful, conversational interface for your autonomous in-page agent.
+[Deep Chat](https://github.com/OvidijusParsiunas/deep-chat) is a fully customizable AI chat component. This guide explores how to bridge Deep Chat with the `webmcp-toolkit` to create a beautiful, conversational interface for your autonomous in-page agent.
 
 ---
 
@@ -8,13 +8,13 @@
 
 ### 1. Install Dependencies
 
-You'll need both the `web-mcp-toolkit` (local build) and `deep-chat`:
+You'll need both the `webmcp-toolkit` (local build) and `deep-chat`:
 
 ```bash
 # Install Deep Chat
 npm install deep-chat
 
-# Building web-mcp-toolkit
+# Building webmcp-toolkit
 cd packages/core
 npm run build
 ```
@@ -102,7 +102,7 @@ window.fetch = async (input, init) => {
 
 ## ✨ Styling for a Premium Look
 
-To make Deep Chat match the `web-mcp-toolkit` aesthetic (dark mode, blurred surfaces), apply these styles:
+To make Deep Chat match the `webmcp-toolkit` aesthetic (dark mode, blurred surfaces), apply these styles:
 
 ```html
 <deep-chat

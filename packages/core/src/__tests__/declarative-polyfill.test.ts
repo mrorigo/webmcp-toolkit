@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DeclarativePolyfill } from '../declarative-polyfill.js';
-import { WebMCPToolkit } from '../web-mcp-toolkit.js';
+import { WebMCPToolkit } from '../webmcp-toolkit.js';
 
 const setupModelContext = () => {
     const registerTool = vi.fn();

@@ -1,4 +1,4 @@
-import type { WebMCPToolkit } from "./web-mcp-toolkit.js";
+import type { WebMCPToolkit } from "./webmcp-toolkit.js";
 
 /**
  * A Polyfill enabling native, HTML-driven declarative WebMCP behavior today.

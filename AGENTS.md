@@ -21,7 +21,7 @@ Most agentic systems assume a "Think-Act" loop (ReAct). This repo supports a "Ze
 - **The Pattern:** Use ReAct for *discovery* and *complex reasoning*, but use Declarative mode for *standardized workflows* to save on latency and cost.
 
 ## 3. The "Universal Delegate" Macro-Tool
-In `web-mcp-toolkit.ts`, the `enableUniversalDelegate()` method is not just another tool.
+In `webmcp-toolkit.ts`, the `enableUniversalDelegate()` method is not just another tool.
 
 **Non-Obvious:** It acts as a **Context Handoff**. 
 - An external, high-level agent (like a system-wide assistant) can "delegate" a task to the **In-Page Agent** by calling this tool.

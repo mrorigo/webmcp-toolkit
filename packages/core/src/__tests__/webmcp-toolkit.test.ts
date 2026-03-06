@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WebMCPToolkit } from '../web-mcp-toolkit.js';
-import type { Schema } from '../web-mcp-toolkit.js';
+import { WebMCPToolkit } from '../webmcp-toolkit.js';
+import type { Schema } from '../webmcp-toolkit.js';
 
 const makeSchema = <T>(value: T): Schema<T> => ({
     parse: (_d: unknown) => value,
