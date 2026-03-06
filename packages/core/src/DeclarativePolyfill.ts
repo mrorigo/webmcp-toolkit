@@ -83,7 +83,7 @@ export class DeclarativePolyfill {
         this.knownForms.add(form);
         const description = form.getAttribute('tooldescription') || `Submit the ${toolName} form`;
 
-        // Very basic JSON representation since we lack full Zod integration for dynamic generation here
+        // Dynamically build JSON Schema based on HTML5 input properties
         // We bypass the typed Zod registry in the SDK and talk directly to the WebMCP layer for purely declarative forms.
         const inputSchema: any = {
             type: "object",
@@ -99,10 +99,35 @@ export class DeclarativePolyfill {
             const desc = el.getAttribute('toolparamdescription') || '';
             const isRequired = el.hasAttribute('required');
 
-            inputSchema.properties[name] = {
-                type: "string",
-                description: desc
-            };
+            let propertyDef: any = { description: desc };
+
+            if (el.tagName === 'INPUT') {
+                const typeAttr = el.getAttribute('type');
+                if (typeAttr === 'number' || typeAttr === 'range') {
+                    propertyDef.type = "number";
+                    if (el.hasAttribute('min')) propertyDef.minimum = Number(el.getAttribute('min'));
+                    if (el.hasAttribute('max')) propertyDef.maximum = Number(el.getAttribute('max'));
+                } else if (typeAttr === 'checkbox' || typeAttr === 'radio') {
+                    propertyDef.type = "boolean";
+                } else {
+                    propertyDef.type = "string";
+                    if (el.hasAttribute('pattern')) propertyDef.pattern = el.getAttribute('pattern');
+                    if (el.hasAttribute('maxlength')) propertyDef.maxLength = Number(el.getAttribute('maxlength'));
+                    if (el.hasAttribute('minlength')) propertyDef.minLength = Number(el.getAttribute('minlength'));
+                }
+            } else if (el.tagName === 'SELECT') {
+                propertyDef.type = "string";
+                const options = Array.from((el as HTMLSelectElement).options);
+                if (options.length > 0) {
+                    propertyDef.enum = options.map(o => o.value || o.text);
+                }
+            } else {
+                propertyDef.type = "string";
+                if (el.hasAttribute('maxlength')) propertyDef.maxLength = Number(el.getAttribute('maxlength'));
+                if (el.hasAttribute('minlength')) propertyDef.minLength = Number(el.getAttribute('minlength'));
+            }
+
+            inputSchema.properties[name] = propertyDef;
 
             if (isRequired) {
                 inputSchema.required.push(name);
