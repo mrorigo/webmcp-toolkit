@@ -3,5 +3,5 @@ export interface ILLMProvider {
     countTokens(text: string): Promise<number>;
     clone(): Promise<ILLMProvider>;
     destroy?(): void;
-    readonly contextWindow?: number;
+    readonly contextWindow?: number | undefined;
 }

@@ -118,7 +118,7 @@ export class SemanticIndexer {
             return lines.join('\n');
         }
 
-        for (const [id, element] of this.actionableElements.entries()) {
+        for (const element of this.actionableElements.values()) {
             lines.push(this.serializeActionableElement(element, compressLevel));
         }
 

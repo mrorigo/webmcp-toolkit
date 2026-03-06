@@ -1,4 +1,4 @@
-import { WebMCPToolkit, ToolRegistration } from "./WebMCPToolkit.js";
+import { WebMCPToolkit } from "./WebMCPToolkit.js";
 
 export class DeclarativePolyfill {
     private toolkit: WebMCPToolkit;
