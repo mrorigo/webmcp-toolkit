@@ -1,4 +1,4 @@
-# Universal WebMCP Agent Toolkit: User Guide
+# webmcp-toolkit — Universal WebMCP Agent Toolkit User Guide
 
 This library lets you build AI-Native Web Applications by bridging your frontend into overarching AI Browser Agents via the [WebMCP Standard](https://webmcp.link/).
 

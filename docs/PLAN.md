@@ -17,7 +17,7 @@ This document outlines the phased implementation strategy for building the `univ
 - **2.4 Testing:** Validate through a mocked WebMCP client that the exact flow from Phase 1 can be triggered by calling the `delegate_page_task` tool.
 
 ## Phase 3: Declarative Polyfills & Explicit Tool Bridge
-**Goal:** Fulfill the "Bronze" and "Silver" pillars of the Universal WebMCP Agent Toolkit specification.
+**Goal:** Fulfill the "Bronze" and "Silver" pillars of the **webmcp-toolkit** (Universal WebMCP Agent Toolkit) specification.
 - **3.1 Declarative Form Polyfill:** Write a mutation observer that scans for `<form toolname="...">`. If the browser lacks native declarative WebMCP support, automatically translate these forms into imperative `registerTool` calls, complete with auto-generated JSON schemas from `<input>` definitions.
 - **3.2 `SubmitEvent` Extensions:** Polyfill `e.agentInvoked` and `e.respondWith()` so website owners can comfortably block native page navigations on agent invocations and return JSON dynamically.
 - **3.3 Explicit API Wrappers:** Finalize the developer surface `mcp.tools.register({...})` powered by Zod to make manual tool registration heavily typed and incredibly simple.

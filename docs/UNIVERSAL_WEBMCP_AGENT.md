@@ -158,4 +158,4 @@ The elegance of this SDK lies in its adoption curve:
 
 ## Conclusion
 
-The Universal WebMCP Agent Toolkit flips the current automation paradigm. Instead of external AI agents reverse-engineering websites via brittle scraping, the website itself provides a robust, semantic, and embedded sub-agent. It is the ultimate SDK for building "AI-Native Web Applications."
+The **webmcp-toolkit** (**Universal WebMCP Agent Toolkit**) flips the current automation paradigm. Instead of external AI agents reverse-engineering websites via brittle scraping, the website itself provides a robust, semantic, and embedded sub-agent.

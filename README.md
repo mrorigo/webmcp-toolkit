@@ -1,6 +1,6 @@
-# Universal WebMCP Agent Toolkit 🌐🤖
+# webmcp-toolkit 🌐🤖
 
-The **Universal WebMCP Agent Toolkit** is an SDK for bridging traditional web applications into the era of AI Browser Agents. By integrating this toolkit, site owners can instantly make their web applications first-class [WebMCP (Web Model Context Protocol)](https://webmcp.link/) environments.
+**Universal WebMCP Agent Toolkit** — The SDK for bridging traditional web applications into the era of AI Browser Agents. By integrating `webmcp-toolkit`, site owners can instantly make their web applications first-class [WebMCP (Web Model Context Protocol)](https://webmcp.link/) environments.
 
 Instead of waiting for brittle external AI agents to scrape your DOM, you can expose semantic intent natively using a standards-compliant API. The toolkit scales from simple **Explicit Tool bridging**, to **Declarative DOM polyfills** (based on the [WebMCP declarative API draft](https://github.com/webmachinelearning/webmcp/blob/53388c87ba372de6be84d5eb30a436c07d41944b/declarative-api-explainer.md)), all the way up to a fully autonomous, embedded **In-Page Sub-Agent**.
 
@@ -71,7 +71,7 @@ mcp.enableUniversalDelegate({
 
 ---
 
-## Why use the Universal WebMCP Agent Toolkit?
+## Why use `webmcp-toolkit`?
 
 - **Future-Proof**: Write code using impending W3C/WebMCP specs today. The Polyfill covers you until browsers catch up.
 - **Zero Dependencies**: The entire SDK is self-contained with no runtime dependencies. The full agent bundle is **15 kb minified**.
