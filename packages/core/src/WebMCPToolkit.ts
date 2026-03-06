@@ -84,7 +84,7 @@ export class WebMCPToolkit {
                 type: "confirmation"
             });
             return result === true;
-        } catch (e) {
+        } catch {
             return false;
         }
     }

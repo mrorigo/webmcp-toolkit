@@ -160,7 +160,7 @@ export class InPageAgent {
             let action;
             try {
                 action = JSON.parse(cleanJson);
-            } catch (jsonErr) {
+            } catch {
                 this.log(`Failed to parse LLM output as JSON: ${responseText}`, "error");
                 if (typeof tempSession.destroy === 'function') tempSession.destroy();
                 return false;

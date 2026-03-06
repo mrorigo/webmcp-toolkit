@@ -124,7 +124,7 @@ export class DeclarativePolyfill {
                             cancelable: true,
                             submitter: form.querySelector('button[type="submit"], input[type="submit"]')
                         });
-                    } catch (e) {
+                    } catch {
                         // Fallback for older browsers
                         submitEvent = new Event('submit', { bubbles: true, cancelable: true });
                     }
